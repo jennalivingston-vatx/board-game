@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bat Bridge Bound: An Austin Adventure (Pixel Edition)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --px: 4px;
+    --page: #f6efe0;
+    --ink: #2c2347;
+    --ink-soft: #5d557a;
+    --panel: #fffaf0;
+    --panel-text: #2c2347;
+    --blue: #3f5fc8;
+    --pink: #d63c78;
+    --orange: #ef8a2b;
+    --yellow: #f3c33b;
+    --night: #2c2347;
+    --slot: #e6dcc8;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #1b1630; --ink: #f4eefc; --ink-soft: #bdb4d6; --panel: #2a2342;
+      --panel-text: #f4eefc; --slot: #3d3460; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #1b1630; --ink: #f4eefc; --ink-soft: #bdb4d6; --panel: #2a2342;
+    --panel-text: #f4eefc; --slot: #3d3460; color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { margin: 0; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: "Fredoka", system-ui, sans-serif;
+    line-height: 1.4;
+  }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+  /* Stepped "pixel" frame: a 1-step notch at each corner */
+  .px-frame {
+    box-shadow:
+      0 calc(-1 * var(--px)) 0 0 var(--frame, #2c2347),
+      0 var(--px) 0 0 var(--frame, #2c2347),
+      calc(-1 * var(--px)) 0 0 0 var(--frame, #2c2347),
+      var(--px) 0 0 0 var(--frame, #2c2347);
+  }
+
+  /* Wide screens: the landscape board with the deck, card and story underneath */
+  .game { position: relative; max-width: 1040px; margin: 0 auto; padding: 18px 20px 28px; overflow: hidden; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .screen { position: relative; margin: var(--px); background: #9ccf6e; }
+  #board { display: block; width: 100%; height: auto; }
+
+  .controls {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 22px;
+    align-items: center;
+    margin-top: 22px;
+  }
+  .bar, .scrim, .log, .continue { display: none; }
+  .deck {
+    appearance: none; border: 0; padding: 0; background: none; cursor: pointer;
+    font: inherit; color: inherit; display: grid; justify-items: center; gap: 10px;
+  }
+  .card {
+    width: 88px; height: 120px; margin: var(--px);
+    display: grid; place-items: center; align-content: center; gap: 6px;
+  }
+  .card-back {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 8px, rgba(255,255,255,.07) 8px 12px),
+      var(--night);
+    --frame: #f3c33b;
+    position: relative;
+  }
+  .deck-stack { position: relative; transition: transform .12s steps(2); }
+  .deck-stack::before {
+    content: ""; position: absolute; inset: var(--px);
+    transform: translate(8px, 8px); background: #4e3a80;
+    box-shadow: 0 0 0 var(--px) #2c2347;
+  }
+  .deck:hover .deck-stack { transform: translateY(-4px); }
+  .deck-label {
+    background: var(--pink); color: #fff; font-weight: 600; font-size: 1.05rem;
+    padding: 6px 14px; margin: var(--px); white-space: nowrap; --frame: #2c2347;
+  }
+  .deck-count { font-size: .9rem; color: var(--ink-soft); margin-top: -4px; }
+  .deck:focus-visible { outline: none; }
+  .deck:focus-visible .deck-label { outline: 3px dashed var(--blue); outline-offset: 7px; }
+  .deck[disabled] { cursor: default; }
+  .deck[disabled] .deck-label { background: #8a83a3; }
+  .deck[disabled] .deck-stack { transform: none; }
+
+  .drawn { width: 96px; height: 128px; display: grid; place-items: center; }
+  .slot {
+    width: 88px; height: 120px; margin: var(--px);
+    background: var(--slot); color: var(--ink-soft);
+    display: grid; place-items: center; text-align: center; font-size: .9rem; padding: 8px;
+    --frame: var(--ink-soft);
+  }
+  .face { color: #fff; font-weight: 600; font-size: .98rem; text-align: center; --frame: #2c2347; position: relative; line-height: 1.1; }
+  .face .gem { background: #fffaf0; width: 56px; height: 56px; display: grid; place-items: center; --frame: #2c2347; margin: var(--px); }
+  .face .gem canvas { width: 44px; height: auto; }
+  .face .times {
+    position: absolute; top: 4px; right: 4px; background: #fff36b; color: #2c2347;
+    font-size: .85rem; padding: 0 4px; --frame: #2c2347; --px: 2px;
+  }
+  .face.double { background-image: repeating-linear-gradient(45deg, transparent 0 6px, rgba(255,255,255,.18) 6px 10px); }
+  .flip { animation: flip .36s steps(4); }
+  @keyframes flip { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+
+  .story {
+    background: var(--panel); color: var(--panel-text);
+    padding: 14px 18px; margin: var(--px);
+    display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center;
+    min-height: 128px; --frame: var(--ink);
+  }
+  .story.no-art { grid-template-columns: 1fr; }
+  .story-art { width: 96px; display: grid; place-items: center; }
+  .story-art canvas { max-width: 96px; height: auto; }
+  .story.no-art .story-art { display: none; }
+  .story h2 { margin: 0 0 4px; font-size: 1.28rem; font-weight: 600; line-height: 1.15; }
+  .story p { margin: 0; color: var(--ink-soft); max-width: 60ch; font-size: 1.04rem; }
+  .story .note { display: block; margin-top: 4px; color: var(--pink); font-weight: 600; }
+  .progress { display: flex; gap: 6px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+  .progress span { width: 12px; height: 12px; background: var(--slot); box-shadow: inset 0 0 0 2px var(--ink-soft); }
+  .progress span.on { background: var(--orange); box-shadow: inset 0 0 0 2px #2c2347; }
+  .progress small { white-space: nowrap; margin-left: 8px; color: var(--ink-soft); font-size: .92rem; }
+
+  .win {
+    position: absolute; inset: 0; display: grid; place-items: center; padding: 16px;
+    opacity: 0; pointer-events: none; transition: opacity .4s steps(4); overflow-y: auto;
+  }
+  .win.show { opacity: 1; pointer-events: auto; }
+  .win-box {
+    background: var(--night); color: #fff; text-align: center;
+    padding: 16px 22px 20px; max-width: 480px; --frame: #f3c33b;
+  }
+  .win-box canvas { width: 64px; height: auto; display: block; margin: 0 auto 6px; }
+  .win h2 { font-size: clamp(1.3rem, 3.4vw, 1.9rem); margin: 0 0 6px; line-height: 1.1; }
+  .win p { margin: 0 auto 12px; color: #e6def7; }
+  .route { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 4px; }
+  .route li { background: #4e3a80; padding: 2px 8px; font-size: .9rem; }
+  .route li + li::before { content: "› "; color: #f3c33b; }
+  .found { color: #f3c33b !important; font-weight: 600; }
+  .again {
+    appearance: none; border: 0; font: inherit; font-weight: 600; font-size: 1.1rem;
+    background: var(--yellow); color: #2c2347; padding: 8px 22px; cursor: pointer; --frame: #fff;
+  }
+  .again:focus-visible { outline: 3px dashed #fff; outline-offset: 7px; }
+
+  /* Phones: the portrait board fills the screen, with a bar underneath and a window that slides up after each move */
+  .game[data-layout="portrait"] {
+    --bar-h: 74px;
+    max-width: none; height: 100dvh; padding: 8px 8px 0; display: flex; flex-direction: column;
+  }
+  .game[data-layout="portrait"] .screen {
+    /* as wide as possible, but never taller than the screen minus the bar */
+    width: min(calc(100% - 8px), calc((100dvh - var(--bar-h) - 32px) * 240 / 344));
+    margin: auto; flex: none;
+  }
+  .game[data-layout="portrait"] .bar {
+    display: flex; align-items: center; gap: 10px; height: var(--bar-h);
+    padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .mini .card, .mini .slot { width: 38px; height: 52px; margin: var(--px); padding: 0; }
+  .mini .face { font-size: 0; gap: 0; }
+  .mini .face .gem { width: 26px; height: 26px; margin: 0; }
+  .mini .face .gem canvas { width: 20px; }
+  .mini .face .times { font-size: .6rem; top: -6px; right: -8px; }
+  .latest {
+    flex: 1; min-width: 0; margin: var(--px); padding: 8px 10px; cursor: pointer;
+    appearance: none; border: 0; font: inherit; font-size: .85rem; text-align: left;
+    background: var(--panel); color: var(--ink-soft); --frame: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .latest b { color: var(--panel-text); font-weight: 600; }
+  .flip-btn {
+    appearance: none; border: 0; font: inherit; font-weight: 600; font-size: 1rem; cursor: pointer;
+    background: var(--pink); color: #fff; padding: 10px 12px; margin: var(--px); white-space: nowrap; --frame: #2c2347;
+  }
+  .flip-btn[disabled] { background: #8a83a3; cursor: default; }
+  .flip-btn:focus-visible, .latest:focus-visible, .continue:focus-visible { outline: 3px dashed var(--blue); outline-offset: 6px; }
+
+  .game[data-layout="portrait"] .controls {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; margin: 0;
+    grid-template-columns: auto 1fr; gap: 12px 14px; align-items: start; max-height: 80%; overflow-y: auto;
+    padding: 18px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+    background: var(--page); box-shadow: 0 -4px 0 0 var(--ink), 0 -14px 30px rgba(0,0,0,.3);
+    transform: translateY(105%); visibility: hidden; transition: transform .3s steps(6), visibility 0s .3s;
+  }
+  .game[data-layout="portrait"].sheet-open .controls { transform: none; visibility: visible; transition: transform .3s steps(6); }
+  .game.switching .controls { transition: none !important; }
+  .game[data-layout="portrait"].sheet-open .scrim { display: block; position: absolute; inset: 0; z-index: 2; background: rgba(28,22,52,.45); }
+  .game[data-layout="portrait"] .deck, .game[data-layout="portrait"] .story-art { display: none; }
+  .game[data-layout="portrait"] .story { min-height: 0; padding: 10px 12px; grid-template-columns: 1fr; }
+  .game[data-layout="portrait"] .story h2 { font-size: 1.1rem; }
+  .game[data-layout="portrait"] .story p { font-size: .95rem; }
+  .game[data-layout="portrait"] .log { display: block; grid-column: 1 / -1; }
+  .log h3 { margin: 0 0 6px; font-size: .95rem; font-weight: 600; }
+  .log ol { margin: 0; padding-left: 20px; max-height: 150px; overflow-y: auto; font-size: .82rem; line-height: 1.35; color: var(--ink-soft); }
+  .log li { margin-bottom: 4px; }
+  .log li b { color: var(--ink); font-weight: 600; }
+  .log li:first-child { color: var(--ink); }
+  .game[data-layout="portrait"] .continue {
+    display: block; grid-column: 1 / -1; margin: 4px var(--px) var(--px);
+    appearance: none; border: 0; font: inherit; font-weight: 600; font-size: 1.1rem; cursor: pointer;
+    background: var(--yellow); color: #2c2347; padding: 10px; --frame: #2c2347;
+  }
+  /* The board is too small to hold the results here, so they cover the page instead. */
+  .game[data-layout="portrait"] .win { position: fixed; z-index: 10; background: rgba(28,22,52,.6); }
+  .game[data-layout="portrait"] .win-box { padding: 12px 14px 16px; }
+  .game[data-layout="portrait"] .win-box canvas { width: 52px; }
+  .game[data-layout="portrait"] .win p { font-size: .95rem; margin-bottom: 10px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="game">
+  <h1 class="sr-only">Bat Bridge Bound: an Austin board game</h1>
+
+  <div class="screen px-frame">
+    <canvas id="board" width="320" height="224" role="img"
+      aria-label="Pixel-art game board: a trail from the start that forks three times on its way to the Congress Avenue Bat Bridge. First fork: Barton Springs or Zilker Park. Then Mural Mile. Second fork: Mount Bonnell or tacos and barbecue. Then shopping on South Congress. Third fork: live music downtown, or a turtle ride across Lady Bird Lake."></canvas>
+    <div class="win" id="win" aria-live="polite">
+      <div class="win-box px-frame">
+        <canvas data-sprite="bat_a" data-scale="4" aria-hidden="true"></canvas>
+        <h2>You made it to Bat Bridge!</h2>
+        <p id="win-text"></p>
+        <ol class="route" id="win-route" aria-label="Your route"></ol>
+        <p class="found" id="win-found"></p>
+        <button class="again px-frame" id="again">Play again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phones only: your card, the latest news and the flip button, under the board -->
+  <div class="bar">
+    <div class="mini" id="mini" aria-hidden="true"><div class="slot px-frame"></div></div>
+    <button class="latest px-frame" id="latest" aria-label="Show what happened"></button>
+    <button class="flip-btn px-frame" id="flip">Flip a card</button>
+  </div>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="controls" id="panel">
+    <button class="deck" id="deck" aria-describedby="story-title">
+      <span class="deck-stack" aria-hidden="true">
+        <span class="card card-back px-frame"><canvas data-sprite="bat_a" data-scale="3" style="width:60px"></canvas></span>
+      </span>
+      <span class="deck-label px-frame">Flip a card</span>
+      <span class="deck-count" id="deck-count"></span>
+    </button>
+
+    <div class="drawn" id="drawn" aria-live="polite">
+      <div class="slot px-frame">Your card shows here</div>
+    </div>
+
+    <div class="story px-frame" id="story" aria-live="polite">
+      <div class="story-art"><canvas id="story-canvas"></canvas></div>
+      <div>
+        <h2 id="story-title">Welcome to Austin!</h2>
+        <p id="story-text"></p>
+        <div class="progress" id="progress" aria-label="Stops reached"></div>
+      </div>
+    </div>
+
+    <div class="log">
+      <h3>Your trip so far</h3>
+      <ol id="log" reversed></ol>
+    </div>
+    <button class="continue px-frame" id="continue">Continue</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // =====================================================================
+  //  Sprites: each row is a string, each character one pixel.
+  //  "." is transparent, "k" is outline, "w" is white, "c" is blush;
+  //  every other letter is defined in that sprite's own palette.
+  // =====================================================================
+  var BASE_PAL = { k: "#2c2347", w: "#ffffff", c: "#f19bb8" };
+  var SPARKLE = [".....k.......",
+       "....kyk....k.",
+       "....kyk...kwk",
+       "...kyyyk...k.",
+       "kkyyywyyykk..",
+       "...kyyyk.....",
+       "....kyk......",
+       "....kyk......",
+       ".....k......."];
+  var SPRITES = {
+    "bat_a": [{"p": "#7a62b0", "d": "#4e3a80", "l": "#b3a3df", "r": "#e8344e"},
+      ["k..................k",
+       "kdk..............kdk",
+       "kddk...k....k...kddk",
+       ".kddk.kpk..kpk.kddk.",
+       ".kdddkkppkkppkkdddk.",
+       "..kddkppppppppkddk..",
+       "..kddkpwkppwkpkddk..",
+       "...kdkpcprwrcpkdk...",
+       "...kdkpppwpwppkdk...",
+       "....kkpllllrlpkk....",
+       ".....kpllllwlpk.....",
+       "......kplllrpk......",
+       ".......kkkkwk.......",
+       "..........krk.......",
+       "..........kwk.......",
+       "..........krk.......",
+       "..........kwk.......",
+       "...........k........"]],
+    "bat_b": [{"p": "#7a62b0", "d": "#4e3a80", "l": "#b3a3df", "r": "#e8344e"},
+      ["....................",
+       "....................",
+       ".......k....k.......",
+       "......kpk..kpk......",
+       ".....kkppkkppkk.....",
+       "...kkkppppppppkkk...",
+       "..kddkpwkppwkpkddk..",
+       ".kdddkpcprwrcpkdddk.",
+       "kddddkpppwpwppkddddk",
+       "kdddkkpllllrlpkkdddk",
+       "kddk.kpllllwlpk.kddk",
+       "kdk...kplllrpk...kdk",
+       "kk.....kkkkwk.....kk",
+       "..........krk.......",
+       "..........kwk.......",
+       "..........krk.......",
+       "..........kwk.......",
+       "...........k........"]],
+    "armadillo": [{"S": "#9c7352", "s": "#c99c74", "h": "#e2bb95", "e": "#e7a0a8", "b": "#d2453a", "B": "#8f2b25", "r": "#e8344e", "R": "#a8202f"},
+      ["...............kwwk...........",
+       "...............kwwkk..........",
+       "................kkrrkk........",
+       "..........kkkkkkk.krrrrkk.....",
+       "........kksSsSsSskkkRrrrrk....",
+       "......kksSsSsSsSsSsSkRrrrrk...",
+       ".....ksSsSsSsSsSsSsSskwwwwwk..",
+       "....ksSsSsSsSsSsSsSsSskwwwwk..",
+       "...ksSsSsSsSsSsSsSsSsSkhkk....",
+       "...ksSsSsSsSsSsSsSsSsSkhhhk...",
+       "..kksSsSsSsSsSsSsSsSsSkhwkhkk.",
+       ".khkSsSsSsSsSsSsSsSsSskhhhhhhk",
+       "khk.kkkkkkkkkkkkkkkkkkkkhhhhck",
+       "kk....khhk.......khhk..kkkkkk.",
+       "......kbbk.......kbbk.........",
+       ".....kbbbbk.....kbbbbk........",
+       ".....kBBBBBk....kBBBBBk.......",
+       "......kkkkkk.....kkkkkk......."]],
+    "salamander": [{"p": "#9c7a96", "d": "#7a5a78", "l": "#d8bccf", "g": "#e2555d"},
+      ["..................g.g.........",
+       "................g.ggg..kkkkk..",
+       "................gggg.kkpppppk.",
+       "...............kgggkppppwkppk.",
+       "kk........kkkkkpppppppppppppk.",
+       "kpkkkkkkkkpppppppppppppppppck.",
+       ".kppppppppppppppppppppppkkk...",
+       "..kkkkkppplllllllllllllpk.....",
+       ".......kpkkkkkkkkkkpkkk.......",
+       "......kpk..........kpk........",
+       "......kk...........kk........."]],
+    "turtle": [{"s": "#4f8a3c", "S": "#2f5f25", "g": "#8bc06d", "y": "#e9c46a", "r": "#d9483b"},
+      ["..........kkkkkkk.............",
+       "........kksSsssSskk...........",
+       ".......ksSssSsSssSsk..........",
+       "......ksssSsssSsssSsk..kkkk...",
+       ".....ksSssSsSsSssSsSsk.kggggk.",
+       ".....kSsssSsssSsssSsssk.kggwkk",
+       "....kyyyyyyyyyyyyyyyyyygrgggk.",
+       "...kkkkkkkkkkkkkkkkkkkkggggk..",
+       "..kgk.kggk........kggk..kkkk..",
+       "..kk..kggk........kggk........",
+       "......kkkk........kkkk........"]],
+    "longhorn": [{"h": "#f2e6cf", "H": "#c9b48e", "f": "#c06a2b", "e": "#a9551f", "m": "#f0c9a8", "n": "#7a3b16"},
+      ["kk..........................kk",
+       "khk........................khk",
+       ".khk......................khk.",
+       ".khhk....................khhk.",
+       "..khhkk......kkkk......kkhhk..",
+       "...kHhhkkk..kffffk..kkkhhHk...",
+       "....kkHHhhkfffwwfffkhhHHkk....",
+       "......kkkkkfffwwfffkkkkk......",
+       ".....keeekkfffwwfffkkeeek.....",
+       "......kkkkkfkkwwkkfkkkkk......",
+       "..........kfffwwfffk..........",
+       "..........kmmmmmmmmk..........",
+       "..........kmnmmmmnmk..........",
+       "...........kmmmmmmk...........",
+       "............kkkkkk............"]],
+    "token": [{"g": "#3f8f4e", "G": "#2a6536", "r": "#d9483b", "s": "#f2c49b", "y": "#f3c33b"},
+      [".........kyk",
+       "........kgk.",
+       ".......kggk.",
+       "......kgggk.",
+       ".....kgGggk.",
+       "...kkggggGk.",
+       "..krrrrrrrk.",
+       "kskssssssksk",
+       "..kskssksk..",
+       "..kcssssck..",
+       "...kkkkkk...",
+       "..kgrrrrgk..",
+       "..kgggggGk..",
+       "...kwk.kwk..",
+       "..krrk.krrk."]],
+    "leaf": [{"g": "#5aa363", "G": "#3f8f4e"},
+      ["...kk",
+       "..kgk",
+       ".kggk",
+       "kgGk.",
+       "kgk..",
+       "kk..."]],
+    "bluebonnet": [{"b": "#3f5fc8", "B": "#2b438f", "g": "#3f8f4e", "G": "#5aa363"},
+      ["....ww....",
+       "...bwwb...",
+       "...bBbb...",
+       "..bbBbBb..",
+       "..bBbbBb..",
+       "..bbBbbb..",
+       "...bbBb...",
+       "G...g....G",
+       "GG..g...GG",
+       ".GG.g..GG.",
+       "..GGgGG...",
+       "....g....."]],
+    "pricklypear": [{"g": "#4f9a5a", "G": "#2f6b3a", "r": "#d63c78"},
+      ["..kk......kk..",
+       ".krrk....krrk.",
+       ".kggGk..kgggk.",
+       "kgggggkkgGgggk",
+       "kgGgggkkgggggk",
+       "kggggGkkggGggk",
+       ".kgggkkkkgggk.",
+       "..kkkggggkkk..",
+       "...kgGgggGk...",
+       "..kggggggggk..",
+       "..kgGgggGggk..",
+       "..kggggggggk..",
+       "...kggGgggk...",
+       "....kkkkkk...."]],
+    "sparkle":        [{"y": "#ffe14d"}, SPARKLE],
+    "sparkle_pink":   [{"y": "#ff8fc4"}, SPARKLE],
+    "sparkle_orange": [{"y": "#ef8a2b"}, SPARKLE],
+    "boot": [{"b": "#a8552b", "B": "#5e2f18", "y": "#f3c33b"},
+      ["..kkkkkk....",
+       "..kbbbbk....",
+       "..kbyybk....",
+       "..kbbbbk....",
+       "..kbyybk....",
+       "..kbbbbbk...",
+       "..kbbbbbbkk.",
+       ".kbbbbbbbbbk",
+       ".kBBBBBBBBBk",
+       "..kkkkkkkkk."]],
+    "note": [{"v": "#6a52a3"},
+      ["....kkkkkkk",
+       "....kvvvvvk",
+       "....kvkkkvk",
+       "....kvk.kvk",
+       "....kvk.kvk",
+       "..kkkvkkkvk",
+       ".kvvvvkvvvk",
+       ".kvvvkkvvvk",
+       "..kkk..kkk."]],
+    "ico_taco": [{"y": "#f3c33b", "Y": "#d99a1e", "g": "#5aa363", "G": "#3f8f4e", "r": "#d9483b", "m": "#8a4b2a", "s": "#c9bfe0"},
+      ["...s......s.....",
+       "..s......s......",
+       "...s......s.....",
+       "................",
+       "..g..r.gg..r.g..",
+       ".gGgrgGgrgGgrgG.",
+       "kyGgrgGgrgGgrgyk",
+       "kyymmmmmmmmmmyyk",
+       ".kyyyyyyyyyyyyk.",
+       "..kYyyyyyyyyYk..",
+       "...kkYyyyyYkk...",
+       ".....kkkkkk....."]],
+    "ico_guitar": [{"o": "#ef8a2b", "O": "#c4621a", "n": "#7a3b16", "H": "#2c2347", "b": "#2c2347", "w": "#fff"},
+      [".....kkkk.....",
+       ".....kHHk.....",
+       "......kk......",
+       "......knk.....",
+       "......knk.....",
+       "......knk.....",
+       "....kkknkkk...",
+       "...kooonoook..",
+       "...kookkkook..",
+       "...kookkkook..",
+       "....koooook...",
+       "...kooooooOk..",
+       "..koobbbbbook.",
+       "..kooooooooOk.",
+       "...kooooooOk..",
+       "....kkkkkkk..."]],
+    "ico_bridge": [{"b": "#d8b48e", "B": "#a8825e", "l": "#cbbdf0", "y": "#f3c33b", "W": "#3d7f9a", "w": "#6fb3cf"},
+      ["..l.l.......yy....",
+       "...l.......yyyy...",
+       "......l.l..yyyy...",
+       ".......l....yy....",
+       "..l.l.............",
+       "...l..............",
+       "BBBBBBBBBBBBBBBBBB",
+       "bbbbbbbbbbbbbbbbbb",
+       "bbb....bbbb....bbb",
+       "bb......bb......bb",
+       "bb......bb......bb",
+       "WWwWWWWwWWWWwWWWWw"]],
+    "ico_springs": [{"y": "#f3c33b", "s": "#c9a27e", "w": "#ffffff", "W": "#2f8fbf", "h": "#f2c49b"},
+      ["............yy..",
+       "...........yyyy.",
+       "...........yyyy.",
+       "............yy..",
+       "ssssssss........",
+       ".s..............",
+       ".s..............",
+       ".s.......kk.....",
+       ".s......khhk....",
+       "wwwwwwwwwwwwwwww",
+       "..W...W...W...W.",
+       ".W.W.W.W.W.W.W.W",
+       "................",
+       "..W...W...W...W."]],
+    "ico_murals": [{"b": "#3f5fc8", "y": "#f3c33b", "o": "#ef8a2b", "p": "#d63c78"},
+      ["kkkkkkkkkkkkkkkk",
+       "kbbbbyyyoooppppk",
+       "kbbbbyyyoooppppk",
+       "kbbbbwwyowwppppk",
+       "kbbbwwwwwwwwpppk",
+       "kbbbwwwwwwwwpppk",
+       "kbbbbwwwwwwppppk",
+       "kbbbbywwwwoppppk",
+       "kbbbbyywwooppppk",
+       "kbbbbyyyoooppppk",
+       "kbbbbyyyoooppppk",
+       "kkkkkkkkkkkkkkkk"]],
+    "ico_kite": [{"p": "#d63c78", "y": "#f3c33b", "b": "#3f5fc8", "o": "#ef8a2b", "t": "#2c2347", "r": "#d63c78"},
+      [".....k.....",
+       "....pky....",
+       "...ppkyy...",
+       "..pppkyyy..",
+       ".ppppkyyyy.",
+       "kkkkkkkkkkk",
+       ".bbbbkoooo.",
+       "..bbbkooo..",
+       "...bbkoo...",
+       "....bko....",
+       ".....k.....",
+       "......t....",
+       ".....rtr...",
+       ".....t.....",
+       "....rtr....",
+       "......t...."]],
+    "ico_mountain": [{"g": "#6aa84f", "G": "#4f8a3c", "y": "#ef8a2b", "W": "#3d7f9a", "w": "#6fb3cf"},
+      ["..........yy....",
+       ".........yyyy...",
+       "......k..yyyy...",
+       ".....kgk..yy....",
+       "....kgggk.......",
+       "...kggGggk......",
+       "..kgggGgggkk....",
+       ".kggGgggggggkk..",
+       "kgggggGggggggggk",
+       "kkkkkkkkkkkkkkkk",
+       "WWwWWWWwWWWWwWWW",
+       "wWWWwWWWWwWWWWwW"]],
+    "ico_shopping": [{"p": "#d63c78", "b": "#3f5fc8", "y": "#f3c33b"},
+      ["...kkk..........",
+       "..k...k...kkk...",
+       "..k...k..k...k..",
+       "kkkkkkkkkk...k..",
+       "kpppppppkk...k..",
+       "kppppppkkkkkkkkk",
+       "kppwpppkbbbbbbbk",
+       "kpwwwppkbbbbbbbk",
+       "kppwpppkbbyyybbk",
+       "kppppppkbbyyybbk",
+       "kppppppkbbbbbbbk",
+       "kppppppkbbbbbbbk",
+       "kkkkkkkkkkkkkkkk"]],
+    "ico_ring": [{"r": "#d9483b"},
+      ["..kkkkk..",
+       ".kwrrrwk.",
+       "kwk...kwk",
+       "krk...krk",
+       "krk...krk",
+       "kwk...kwk",
+       ".kwrrrwk.",
+       "..kkkkk.."]]
+  };
+
+  // Tiny 3x5 bitmap font for the signs on the board (M and W are 5 wide).
+  var FONT = {
+    A:[".#.","#.#","###","#.#","#.#"], B:["##.","#.#","##.","#.#","##."], C:[".##","#..","#..","#..",".##"],
+    D:["##.","#.#","#.#","#.#","##."], E:["###","#..","##.","#..","###"], F:["###","#..","##.","#..","#.."],
+    G:[".##","#..","#.#","#.#",".##"], H:["#.#","#.#","###","#.#","#.#"], I:["###",".#.",".#.",".#.","###"],
+    J:["..#","..#","..#","#.#",".#."], K:["#.#","#.#","##.","#.#","#.#"], L:["#..","#..","#..","#..","###"],
+    M:["#...#","##.##","#.#.#","#...#","#...#"], N:["#..#","##.#","#.##","#..#","#..#"],
+    O:[".#.","#.#","#.#","#.#",".#."], P:["##.","#.#","##.","#..","#.."], Q:[".#.","#.#","#.#","##.",".##"],
+    R:["##.","#.#","##.","#.#","#.#"], S:[".##","#..",".#.","..#","##."], T:["###",".#.",".#.",".#.",".#."],
+    U:["#.#","#.#","#.#","#.#","###"], V:["#.#","#.#","#.#","#.#",".#."], W:["#...#","#...#","#.#.#","##.##","#...#"],
+    X:["#.#","#.#",".#.","#.#","#.#"], Y:["#.#","#.#",".#.",".#.",".#."], Z:["###","..#",".#.","#..","###"],
+    "0":["###","#.#","#.#","#.#","###"], "1":[".#.","##.",".#.",".#.","###"], "2":["##.","..#",".#.","#..","###"],
+    "3":["##.","..#",".#.","..#","##."], "4":["#.#","#.#","###","..#","..#"], "5":["###","#..","##.","..#","##."],
+    "6":[".##","#..","###","#.#","###"], "7":["###","..#",".#.",".#.",".#."], "8":["###","#.#","###","#.#","###"],
+    "9":["###","#.#","###","..#","##."], "&":[".#..","#.#.",".#..","#.##",".##."], " ":["..","..","..","..",".."],
+    "!":["#","#","#",".","#"]
+  };
+
+  // =====================================================================
+  //  Game setup (edit names, tidbits and colors here)
+  // =====================================================================
+  var COLORS = [
+    { name: "Bluebonnet",   hex: "#3f5fc8", dark: "#2b438f", icon: "bluebonnet" },
+    { name: "Prickly pear", hex: "#d63c78", dark: "#9c2656", icon: "pricklypear" },
+    { name: "Sunset",       hex: "#ef8a2b", dark: "#b8611a", icon: "sparkle_orange" },
+    { name: "Live oak",     hex: "#3f8f4e", dark: "#2a6536", icon: "boot" },
+    { name: "Sunshine",     hex: "#e2ad1f", dark: "#a87d10", icon: "note" }
+  ];
+
+  // The deck: three single cards and one double card of each color, shuffled fresh every game.
+  var SINGLES_PER_COLOR = 3, DOUBLES_PER_COLOR = 1;
+  // Each game should take about this many cards.
+  var MIN_DRAWS = 6, MAX_DRAWS = 10;
+  // How many recent routes to avoid repeating (there are 8 routes in all).
+  var ROUTE_MEMORY = 7;
+
+  // Landmarks. The token always stops at a landmark, even with moves to spare,
+  // and each visit shows a tidbit the player hasn't seen yet.
+  var STOPS = {
+    start: { name: "Start", icon: "sparkle", disc: "#3f8f4e", iconPal: { y: "#ffffff" }, label: "START" },
+    barton: {
+      name: "Barton Springs", icon: "ico_springs", disc: "#8fd0e8", label: "BARTON SPRINGS",
+      friend: { name: "salamander" },
+      title: "Splash! You reached Barton Springs Pool.",
+      facts: [
+        "This spring-fed pool stays about 68°F all year, so locals swim here even in winter.",
+        "Sal the Salamander lives here. Barton Springs salamanders are found nowhere else on Earth.",
+        "The pool covers about three acres and is fed by the Edwards Aquifer, deep under the Hill Country."
+      ]
+    },
+    zilker: {
+      name: "Zilker Park", icon: "ico_kite", disc: "#dff3c8", label: "ZILKER PARK",
+      title: "Picnic time at Zilker Park!",
+      facts: [
+        "Zilker Park covers about 350 acres along Lady Bird Lake, right next to downtown.",
+        "The Zilker Kite Festival has filled the spring sky with kites since 1929.",
+        "Every fall, Austin City Limits Music Festival sets up its stages on Zilker’s big lawn.",
+        "Each December, the Zilker Holiday Tree is strung from one of Austin’s historic moonlight towers."
+      ]
+    },
+    murals: {
+      name: "Mural Mile", icon: "ico_murals", disc: "#fbe0ea", label: "MURAL MILE",
+      friend: { name: "armadillo" },
+      title: "Say cheese at the South Austin murals!",
+      facts: [
+        "Dilla the Armadillo is showing off her Santa hat and red boots. The nine-banded armadillo is the official state small mammal of Texas.",
+        "The “i love you so much” mural on South Congress began as a love note painted on a coffee shop wall in 2010.",
+        "The “Greetings from Austin” postcard mural on South First Street has been a favorite photo stop since 1998."
+      ]
+    },
+    tacos: {
+      name: "Tacos & BBQ", icon: "ico_taco", disc: "#fde9cf", label: "TACOS & BBQ",
+      title: "Lunch break: tacos and barbecue!",
+      facts: [
+        "Breakfast tacos are an Austin morning ritual. Migas tacos, with eggs and crispy tortilla strips, are a local favorite.",
+        "Central Texas barbecue is all about brisket, slow-smoked for hours over post oak wood.",
+        "Franklin Barbecue started out in a trailer in 2009. Austin’s food trucks launch lots of famous restaurants."
+      ]
+    },
+    bonnell: {
+      name: "Mount Bonnell", icon: "ico_mountain", disc: "#ffe2c4", label: "MOUNT BONNELL",
+      title: "What a view from Mount Bonnell!",
+      facts: [
+        "About 100 limestone steps lead to the top, one of the highest points in Austin.",
+        "From the top you can see Lake Austin winding below and the Pennybacker Bridge in the distance.",
+        "Mount Bonnell has been a favorite lookout since the 1850s. Come at sunset for the best colors."
+      ]
+    },
+    soco: {
+      name: "South Congress", icon: "ico_shopping", disc: "#fde3ef", label: "SOUTH CONGRESS",
+      title: "Shopping on South Congress!",
+      facts: [
+        "South Congress Avenue, or SoCo, is lined with boutiques, vintage shops and cowboy boot stores, with the Capitol framed at the north end.",
+        "Allens Boots on South Congress has been fitting Austinites for cowboy boots since 1977.",
+        "Between shops, grab a snack from a SoCo food truck, or catch a band at the Continental Club, open since 1955."
+      ]
+    },
+    music: {
+      name: "Live Music", icon: "ico_guitar", disc: "#e5e9fb", label: "LIVE MUSIC",
+      friend: { name: "longhorn" },
+      title: "You found the music!",
+      facts: [
+        "Austin calls itself the Live Music Capital of the World. Lou the Longhorn is tapping his hooves to the band.",
+        "Austin City Limits has been taped here since 1974, making it the longest-running music show on American TV.",
+        "A bronze statue of Willie Nelson stands downtown, on a street named Willie Nelson Boulevard."
+      ]
+    },
+    turtle: {
+      name: "Turtle Ride", icon: "ico_ring", disc: "#cdeef7", label: "TURTLE RIDE",
+      friend: { name: "turtle" },
+      title: "Shelly the Turtle offers you a ride!",
+      facts: [
+        "Lady Bird Lake is named for former first lady Lady Bird Johnson. Hop on Shelly’s shell to float across!",
+        "Motorboats aren’t allowed on most of Lady Bird Lake, so it’s full of kayaks, canoes and paddleboards. Shelly paddles you across!",
+        "A 10-mile hike-and-bike trail loops around Lady Bird Lake. Shelly knows a faster way across!"
+      ]
+    },
+    bridge: {
+      name: "Bat Bridge", icon: "ico_bridge", disc: "#2c2347", label: "BAT BRIDGE",
+      friend: { name: "bat" },
+      title: "You made it to Bat Bridge!",
+      facts: [
+        "Up to 1.5 million Mexican free-tailed bats live under the Congress Avenue Bridge, the largest urban bat colony in North America.",
+        "The bats fly out at dusk from late March through early fall. Bea the Bat cheers you home.",
+        "On a single night the colony can eat thousands of pounds of insects. Bea says thanks for visiting!"
+      ]
+    }
+  };
+
+  // The trail forks three times. Each fork leads past one of two landmarks, so there are 8 routes.
+  var FORKS = [["barton", "zilker"], ["bonnell", "tacos"], ["music", "turtle"]];
+
+  // Tidbits for the plain spaces between landmarks.
+  var TIDBITS = [
+    "The bluebonnet is the Texas state flower, and it covers roadsides every spring.",
+    "Prickly pear fruits are called tunas, and Texans turn them into jelly and candy.",
+    "Austin’s live oaks keep their leaves almost all year.",
+    "Austin still lights 15 moonlight towers from the 1890s, and it’s the only city that does.",
+    "“Keep Austin Weird” started around 2000 as a way to cheer on local businesses.",
+    "SXSW fills Austin with music, film and new ideas every March.",
+    "The University of Texas Tower glows orange to celebrate big wins.",
+    "Texas has an official state snack: tortilla chips and salsa.",
+    "Hamilton Pool, a swimming hole under a waterfall, is less than an hour west of Austin.",
+    "Lady Bird Johnson led the push to plant wildflowers along Texas highways.",
+    "The Paramount Theatre on Congress Avenue opened in 1915 and still puts on shows.",
+    "The Texas Capitol is built from pink granite and stands a little taller than the U.S. Capitol.",
+    "Treaty Oak, one of Austin’s oldest trees, is said to be about 500 years old.",
+    "The Barton Creek Greenbelt has miles of trails, swimming holes and climbing walls.",
+    "Austin sits where the Hill Country meets the prairie, along a fault line called the Balcones Escarpment."
+  ];
+  var TIDBIT_TITLES = ["Austin tidbit!", "Did you know?", "Trail trivia!", "Fun fact!"];
+
+  // =====================================================================
+  //  Board layout (320 x 224 pixels)
+  //  Nodes are fixed points; plain spaces are spread evenly along each edge.
+  //  `c` is the color of an edge's first space; the rest cycle through COLORS.
+  // =====================================================================
+  var SPACING = 17, BADGE_R = 11;
+  // What sits on each point of the trail; the same on both boards.
+  var NODE_INFO = {
+    start: { stop: "start" }, s1: { color: 4 }, barton: { stop: "barton" }, zilker: { stop: "zilker" },
+    murals: { stop: "murals" }, s2: { color: 1 }, bonnell: { stop: "bonnell" }, tacos: { stop: "tacos" },
+    soco: { stop: "soco" }, s3: { color: 2 }, music: { stop: "music" }, turtle: { stop: "turtle" },
+    landing: { color: 0 }, bridge: { stop: "bridge" }
+  };
+  // [from, to, options]. At a fork the first edge listed wins ties.
+  var EDGES = [
+    ["start", "s1", { c: 0 }], ["s1", "barton", { c: 0 }], ["s1", "zilker", { c: 2 }],
+    ["barton", "murals", { c: 3 }], ["zilker", "murals", { c: 1 }], ["murals", "s2", { c: 4 }],
+    ["s2", "bonnell", { c: 0 }], ["s2", "tacos", { c: 2 }], ["bonnell", "soco", { c: 3 }],
+    ["tacos", "soco", { c: 4 }], ["soco", "s3", { c: 0 }], ["s3", "music", { c: 0 }],
+    ["s3", "turtle", { c: 2 }], ["music", "bridge", { c: 4 }], ["turtle", "landing", { ride: true }],
+    ["landing", "bridge", { c: 1 }]
+  ];
+  // Two boards lay out the same trail: landscape for wide screens, portrait for phones.
+  // `nodes` are positions, `ways` are bends in the trail between two nodes,
+  // `signs` place each landmark's label and `friends` its character, both relative to the landmark.
+  var BOARDS = {
+    landscape: {
+      W: 320, H: 224, lake: { x: 92, y: 92, rx: 50, ry: 16 },
+      nodes: { start: [18, 196], s1: [48, 190], barton: [92, 142], zilker: [104, 204], murals: [168, 190], s2: [196, 178],
+               bonnell: [222, 134], tacos: [262, 200], soco: [292, 126], s3: [262, 90], music: [222, 34], turtle: [152, 100],
+               landing: [30, 104], bridge: [30, 30] },
+      ways: { "s1>barton": [[58, 160]], "s1>zilker": [[74, 208]], "barton>murals": [[134, 166]], "zilker>murals": [[138, 208]],
+              "s2>bonnell": [[200, 152]], "s2>tacos": [[228, 206]], "bonnell>soco": [[258, 114]], "tacos>soco": [[304, 174]],
+              "soco>s3": [[290, 98]], "s3>music": [[256, 52]], "s3>turtle": [[206, 110]], "music>bridge": [[160, 22], [96, 40]],
+              "turtle>landing": [[92, 88]], "landing>bridge": [[18, 68]] },
+      signs: { start: [0, 13], barton: [-6, -23], zilker: [0, -24], murals: [0, 13], tacos: [0, 13], bonnell: [-48, -4],
+               soco: [-30, 15], music: [-4, 14], turtle: [6, 13], bridge: [4, -24] },
+      friends: { barton: [32, 2], murals: [8, -20], music: [0, 44], turtle: [-22, 6], bridge: [34, 36] }
+    },
+    // The elf starts at the bottom and winds up the board to Bat Bridge at the top.
+    portrait: {
+      W: 240, H: 344, lake: { x: 166, y: 100, rx: 46, ry: 14 },
+      nodes: { start: [22, 326], s1: [52, 322], barton: [86, 284], zilker: [150, 326], murals: [212, 296], s2: [212, 256],
+               bonnell: [132, 190], tacos: [120, 240], soco: [28, 216], s3: [30, 172], music: [30, 92], turtle: [114, 128],
+               landing: [218, 70], bridge: [206, 26] },
+      ways: { "s1>barton": [[56, 298]], "s1>zilker": [[100, 332]], "barton>murals": [[150, 280]], "zilker>murals": [[190, 326]],
+              "s2>bonnell": [[208, 204]], "s2>tacos": [[170, 250]], "bonnell>soco": [[74, 186]], "tacos>soco": [[70, 246]],
+              "s3>music": [[18, 132]], "s3>turtle": [[70, 162]], "music>bridge": [[38, 42], [110, 22]], "turtle>landing": [[166, 76]] },
+      signs: { start: [0, -24], barton: [0, -24], zilker: [0, -24], murals: [-38, -34], tacos: [20, -24], bonnell: [0, -24],
+               soco: [54, -2], music: [42, -4], turtle: [42, 2], bridge: [-34, 18] },
+      friends: { barton: [20, 30], murals: [-22, 20], music: [44, -12], turtle: [-4, -12], bridge: [-94, 34] }
+    }
+  };
+  var shape, W, H, NODES, LAKE; // the board in use, set by useBoard()
+
+  // =====================================================================
+  //  Saved between games on this device: recent routes, card orders and seen tidbits
+  // =====================================================================
+  var STORE_KEY = "batBridgeBound.v1";
+  var memory = (function () {
+    var m = null;
+    try { m = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { /* storage blocked */ }
+    m = m && typeof m === "object" ? m : {};
+    return { recent: m.recent || [], found: m.found || [], seqs: m.seqs || [], seen: m.seen || {} };
+  })();
+  function remember() { try { localStorage.setItem(STORE_KEY, JSON.stringify(memory)); } catch (e) { /* storage blocked */ } }
+
+  // A tidbit from `list` this player hasn't seen yet; starts over once they've seen them all.
+  function freshTidbit(key, list) {
+    var seen = memory.seen[key] || [], fresh = [];
+    for (var i = 0; i < list.length; i++) if (seen.indexOf(i) < 0) fresh.push(i);
+    if (!fresh.length) { seen = []; for (var j = 0; j < list.length; j++) fresh.push(j); }
+    var pick = fresh[Math.floor(Math.random() * fresh.length)];
+    seen.push(pick); memory.seen[key] = seen; remember();
+    return list[pick];
+  }
+
+  // =====================================================================
+  //  Sprite rendering
+  // =====================================================================
+  var spriteCache = {};
+  function spriteSize(name) { var r = SPRITES[name][1]; return { w: Math.max.apply(null, r.map(function (s) { return s.length; })), h: r.length }; }
+  function bakeSprite(name, palOverride, flip) {
+    var key = name + "|" + JSON.stringify(palOverride || {}) + "|" + (flip ? 1 : 0);
+    if (spriteCache[key]) return spriteCache[key];
+    var pal = SPRITES[name][0], rows = SPRITES[name][1], sz = spriteSize(name);
+    var c = document.createElement("canvas"); c.width = sz.w; c.height = sz.h;
+    var x = c.getContext("2d");
+    rows.forEach(function (row, y) {
+      for (var i = 0; i < row.length; i++) {
+        var ch = row[i]; if (ch === ".") continue;
+        var col = (palOverride && palOverride[ch]) || pal[ch] || BASE_PAL[ch];
+        if (!col) continue;
+        x.fillStyle = col; x.fillRect(flip ? sz.w - 1 - i : i, y, 1, 1);
+      }
+    });
+    spriteCache[key] = c; return c;
+  }
+  // The sprite with a 1-pixel white outline all around, like a sticker
+  function outlined(name) {
+    var key = name + "|outline";
+    if (spriteCache[key]) return spriteCache[key];
+    var src = bakeSprite(name), c = document.createElement("canvas");
+    c.width = src.width + 2; c.height = src.height + 2;
+    var x = c.getContext("2d");
+    [[0, 1], [2, 1], [1, 0], [1, 2], [0, 0], [2, 0], [0, 2], [2, 2]].forEach(function (o) { x.drawImage(src, o[0], o[1]); });
+    x.globalCompositeOperation = "source-in"; x.fillStyle = "#ffffff"; x.fillRect(0, 0, c.width, c.height);
+    x.globalCompositeOperation = "source-over"; x.drawImage(src, 1, 1);
+    spriteCache[key] = c; return c;
+  }
+  function blit(ctx, name, x, y, opts) {
+    opts = opts || {};
+    ctx.drawImage(bakeSprite(name, opts.pal, opts.flip), Math.round(x), Math.round(y));
+  }
+  // Fill a <canvas data-sprite> element in the page at an integer scale
+  function paintSpriteCanvas(cv, name, scale, pal) {
+    var sz = spriteSize(name);
+    cv.width = sz.w * scale; cv.height = sz.h * scale;
+    var x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
+    x.clearRect(0, 0, cv.width, cv.height);
+    x.drawImage(bakeSprite(name, pal), 0, 0, cv.width, cv.height);
+  }
+  document.querySelectorAll("canvas[data-sprite]").forEach(function (cv) {
+    paintSpriteCanvas(cv, cv.getAttribute("data-sprite"), +cv.getAttribute("data-scale") || 3);
+  });
+
+  function textWidth(str) {
+    var w = 0; for (var i = 0; i < str.length; i++) { var g = FONT[str[i]] || FONT[" "]; w += g[0].length + 1; }
+    return w - 1;
+  }
+  function drawText(ctx, str, x, y, col) {
+    ctx.fillStyle = col;
+    for (var i = 0; i < str.length; i++) {
+      var g = FONT[str[i]] || FONT[" "];
+      for (var r = 0; r < 5; r++) for (var c = 0; c < g[r].length; c++) if (g[r][c] === "#") ctx.fillRect(x + c, y + r, 1, 1);
+      x += g[0].length + 1;
+    }
+  }
+  // A little wooden sign with a pixel label; returns the box it covers
+  function drawSign(ctx, str, cx, y) {
+    var w = textWidth(str) + 6, x = Math.round(cx - w / 2);
+    ctx.fillStyle = "#2c2347"; ctx.fillRect(x, y + 1, w, 7); ctx.fillRect(x + 1, y, w - 2, 9);
+    ctx.fillStyle = "#fff6dc"; ctx.fillRect(x + 1, y + 1, w - 2, 7);
+    ctx.fillStyle = "#e8d3a6"; ctx.fillRect(x + 1, y + 7, w - 2, 1);
+    drawText(ctx, str, x + 3, y + 2, "#2c2347");
+    return { x: x, y: y, w: w, h: 9 };
+  }
+  function disc(ctx, cx, cy, r, col) {
+    ctx.fillStyle = col;
+    for (var y = -r; y <= r; y++) {
+      var half = Math.floor(Math.sqrt(r * r + r * 0.8 - y * y));
+      ctx.fillRect(Math.round(cx) - half, Math.round(cy) + y, half * 2 + 1, 1);
+    }
+  }
+  function ellipse(ctx, cx, cy, rx, ry, col) {
+    ctx.fillStyle = col;
+    for (var y = -ry; y <= ry; y++) {
+      var half = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry + ry * 0.6))));
+      ctx.fillRect(Math.round(cx) - half, Math.round(cy) + y, half * 2 + 1, 1);
+    }
+  }
+
+  // =====================================================================
+  //  Build the trail graph
+  // =====================================================================
+  // A smooth curve through the points (Catmull-Rom), sampled densely, with lookup by distance.
+  function curve(points) {
+    var dense = [];
+    for (var i = 0; i < points.length - 1; i++) {
+      var p0 = points[i - 1] || points[i], p1 = points[i], p2 = points[i + 1], p3 = points[i + 2] || p2;
+      var c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
+      var c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+      for (var s = (i ? 1 : 0); s <= 60; s++) {
+        var t = s / 60, u = 1 - t;
+        dense.push({
+          x: u*u*u*p1.x + 3*u*u*t*c1.x + 3*u*t*t*c2.x + t*t*t*p2.x,
+          y: u*u*u*p1.y + 3*u*u*t*c1.y + 3*u*t*t*c2.y + t*t*t*p2.y
+        });
+      }
+    }
+    var cum = [0];
+    for (var j = 1; j < dense.length; j++) cum.push(cum[j - 1] + Math.hypot(dense[j].x - dense[j - 1].x, dense[j].y - dense[j - 1].y));
+    return {
+      pts: dense, len: cum[cum.length - 1],
+      at: function (d) {
+        var lo = 0, hi = cum.length - 1;
+        while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (cum[mid] < d) lo = mid; else hi = mid; }
+        var a = dense[lo], b = dense[hi], t = (d - cum[lo]) / ((cum[hi] - cum[lo]) || 1);
+        return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+      }
+    };
+  }
+
+  var spaces, trail, rides;
+  function buildTrail() {
+  spaces = {}; trail = []; rides = {};
+  Object.keys(NODE_INFO).forEach(function (id) {
+    var n = NODE_INFO[id];
+    spaces[id] = { id: id, x: NODES[id].x, y: NODES[id].y, stop: n.stop || null, color: n.stop ? null : n.color, next: [] };
+  });
+  EDGES.forEach(function (e) {
+    var a = spaces[e[0]], b = spaces[e[1]], opt = e[2];
+    var bends = shape.ways[e[0] + ">" + e[1]] || [];
+    var cv = curve([a].concat(bends.map(function (p) { return { x: p[0], y: p[1] }; })).concat([b]));
+    if (opt.ride) { a.next.push(b.id); rides[a.id] = { to: b.id, pts: cv.pts }; return; }
+    trail.push.apply(trail, cv.pts);
+    // Landmark badges are bigger than spaces, so leave them a little more room.
+    var padA = a.stop ? 6 : 0, padB = b.stop ? 6 : 0, usable = cv.len - padA - padB;
+    var count = Math.max(0, Math.round(usable / SPACING) - 1), prev = a;
+    for (var k = 1; k <= count; k++) {
+      var p = cv.at(padA + usable * k / (count + 1));
+      var s = { id: a.id + ">" + b.id + ":" + k, x: Math.round(p.x), y: Math.round(p.y), stop: null, color: (opt.c + k - 1) % COLORS.length, next: [] };
+      spaces[s.id] = s; prev.next.push(s.id); prev = s;
+    }
+    prev.next.push(b.id);
+  });
+  }
+
+  // =====================================================================
+  //  Rules: where a card sends you
+  // =====================================================================
+  function makeDeck() {
+    var deck = [];
+    COLORS.forEach(function (_, c) {
+      for (var i = 0; i < SINGLES_PER_COLOR; i++) deck.push({ color: c, steps: 1 });
+      for (var j = 0; j < DOUBLES_PER_COLOR; j++) deck.push({ color: c, steps: 2 });
+    });
+    return deck;
+  }
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+
+  // Shortest way forward from `fromId` to a space that passes `test`, as a list of space ids.
+  function pathTo(fromId, test) {
+    var prev = {}, queue = [fromId]; prev[fromId] = null;
+    while (queue.length) {
+      var id = queue.shift();
+      if (id !== fromId && test(spaces[id])) {
+        var path = [];
+        for (var c = id; c !== fromId; c = prev[c]) path.unshift(c);
+        return path;
+      }
+      spaces[id].next.forEach(function (n) { if (!(n in prev)) { prev[n] = id; queue.push(n); } });
+    }
+    return null;
+  }
+
+  // The spaces a card moves you through: to the next space of its color (twice for a double),
+  // or to the bridge if that color doesn't come up again, but never past a landmark.
+  function plotMove(fromId, card) {
+    var path = [], at = fromId;
+    for (var t = 0; t < card.steps; t++) {
+      var leg = pathTo(at, function (s) { return s.color === card.color; }) ||
+                pathTo(at, function (s) { return s.id === "bridge"; });
+      if (!leg) break;
+      path = path.concat(leg); at = leg[leg.length - 1];
+    }
+    for (var i = 0; i < path.length; i++) if (spaces[path[i]].stop) return path.slice(0, i + 1);
+    return path;
+  }
+
+  // Play a whole game with this card order, without showing anything.
+  function simulate(deck) {
+    var pos = "start", route = [];
+    for (var i = 0; i < deck.length; i++) {
+      var path = plotMove(pos, deck[i]);
+      if (!path.length) return null;
+      pos = path[path.length - 1];
+      if (spaces[pos].stop) route.push(spaces[pos].stop);
+      if (rides[pos]) pos = rides[pos].to;
+      if (pos === "bridge") return { draws: i + 1, route: route, key: routeKey(route) };
+    }
+    return null;
+  }
+  function routeKey(route) { return FORKS.map(function (f) { return route.indexOf(f[0]) >= 0 ? f[0] : f[1]; }).join("-"); }
+  var ALL_ROUTES = FORKS.reduce(function (acc, f) {
+    var out = []; acc.forEach(function (a) { f.forEach(function (s) { out.push(a.concat([s])); }); }); return out;
+  }, [[]]).map(function (r) { return r.join("-"); });
+  function cardKey(card) { return card.color + "" + card.steps; }
+
+  // Shuffle until the deck sends the player down a route they haven't taken lately,
+  // in a card order they've never drawn, at a comfortable game length.
+  function dealGame() {
+    var pool = ALL_ROUTES.filter(function (r) { return memory.recent.indexOf(r) < 0; });
+    if (!pool.length) pool = ALL_ROUTES.filter(function (r) { return r !== memory.recent[memory.recent.length - 1]; });
+    var unexplored = pool.filter(function (r) { return memory.found.indexOf(r) < 0; });
+    if (unexplored.length) pool = unexplored;
+    var target = pool[Math.floor(Math.random() * pool.length)];
+
+    var best = null, bestScore = Infinity;
+    for (var tries = 0; tries < 4000; tries++) {
+      var deck = shuffle(makeDeck()), sim = simulate(deck);
+      if (!sim) continue;
+      var order = deck.slice(0, sim.draws).map(cardKey).join("");
+      if (memory.seqs.indexOf(order) >= 0) continue;
+      var score = (sim.key === target ? 0 : 100) + 10 * Math.max(0, MIN_DRAWS - sim.draws, sim.draws - MAX_DRAWS);
+      if (score < bestScore) { best = { deck: deck, sim: sim, order: order }; bestScore = score; }
+      if (score === 0) break;
+    }
+    return best;
+  }
+
+  // =====================================================================
+  //  Static background, painted once
+  // =====================================================================
+  var bgCanvas = document.createElement("canvas");
+  var bg = bgCanvas.getContext("2d");
+  var taken = []; // boxes already covered by signs, badges and friends
+
+  function rand(seed) { return function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+  function nearTrail(x, y, dist) {
+    for (var i = 0; i < trail.length; i += 3) if (Math.abs(trail[i].x - x) < dist && Math.abs(trail[i].y - y) < dist && Math.hypot(trail[i].x - x, trail[i].y - y) < dist) return true;
+    return false;
+  }
+  function inLake(x, y, pad) { var dx = (x - LAKE.x) / (LAKE.rx + pad), dy = (y - LAKE.y) / (LAKE.ry + pad); return dx * dx + dy * dy < 1; }
+  function overlaps(b, pad) {
+    return taken.some(function (t) { return b.x < t.x + t.w + pad && t.x < b.x + b.w + pad && b.y < t.y + t.h + pad && t.y < b.y + b.h + pad; });
+  }
+
+  // Where each friend stands (bottom-centre of the sprite)
+  var FRIENDS = {};
+  function placeFriends() {
+    FRIENDS = {};
+    Object.keys(STOPS).forEach(function (k) {
+      var f = STOPS[k].friend; if (!f) return;
+      var x = NODES[k].x + shape.friends[k][0], y = NODES[k].y + shape.friends[k][1];
+      FRIENDS[f.name] = { x: x, y: y, homeX: x, homeY: y, flip: false, hop: 0 };
+    });
+  }
+
+  function paintBackground() {
+    // grass with a dithered texture
+    bg.fillStyle = "#9ccf6e"; bg.fillRect(0, 0, W, H);
+    var r = rand(7);
+    for (var n = 0; n < 1000; n++) {
+      var x = Math.floor(r() * W), y = Math.floor(r() * H);
+      bg.fillStyle = r() < 0.6 ? "#88bd5c" : "#b3dc86"; bg.fillRect(x, y, 1, 1);
+    }
+
+    // Lady Bird Lake
+    ellipse(bg, LAKE.x, LAKE.y, LAKE.rx + 2, LAKE.ry + 2, "#2c2347");
+    ellipse(bg, LAKE.x, LAKE.y, LAKE.rx + 1, LAKE.ry + 1, "#a7dff0");
+    ellipse(bg, LAKE.x, LAKE.y, LAKE.rx, LAKE.ry, "#5fb6d9");
+    ellipse(bg, LAKE.x + 3, LAKE.y + 3, LAKE.rx - 8, LAKE.ry - 6, "#4ea6cb");
+
+    // trail: outline, then sand, then a light center stripe
+    var i;
+    for (i = 0; i < trail.length; i += 2) disc(bg, trail[i].x, trail[i].y, 9, "#2c2347");
+    for (i = 0; i < trail.length; i += 2) disc(bg, trail[i].x, trail[i].y + 1, 8, "#d9b57a");
+    for (i = 0; i < trail.length; i += 2) disc(bg, trail[i].x, trail[i].y, 8, "#f6e3b4");
+    for (i = 0; i < trail.length; i += 9) { bg.fillStyle = "#e3c88f"; bg.fillRect(Math.round(trail[i].x + (i % 5) - 2), Math.round(trail[i].y + (i % 7) - 3), 1, 1); }
+
+    // turtle ride: a dotted line over the water
+    Object.keys(rides).forEach(function (k) {
+      var pts = rides[k].pts;
+      for (var q = 16; q < pts.length - 16; q += 5) { bg.fillStyle = "#ffffff"; bg.fillRect(Math.round(pts[q].x), Math.round(pts[q].y), 2, 2); }
+    });
+    var lakeSign = drawSign(bg, "LADY BIRD LAKE", LAKE.x - 4, LAKE.y + 1); taken.push(lakeSign);
+
+    // plain spaces
+    Object.keys(spaces).forEach(function (id) {
+      var P = spaces[id]; if (P.stop) return;
+      var rr = 6, c = COLORS[P.color];
+      disc(bg, P.x, P.y + 2, rr + 1, "#c9a463");
+      disc(bg, P.x, P.y, rr + 1, "#2c2347");
+      disc(bg, P.x, P.y, rr, c.dark);
+      disc(bg, P.x, P.y - 1, rr - 1, c.hex);
+      bg.fillStyle = "rgba(255,255,255,.85)";
+      bg.fillRect(P.x - rr + 3, P.y - rr + 2, 2, 1); bg.fillRect(P.x - rr + 2, P.y - rr + 3, 1, 2);
+    });
+
+    // landmark badges, right on the trail
+    Object.keys(STOPS).forEach(function (k) {
+      var s = STOPS[k], P = NODES[k];
+      disc(bg, P.x, P.y + 2, BADGE_R + 2, "rgba(44,35,71,.35)");
+      disc(bg, P.x, P.y, BADGE_R + 2, "#2c2347");
+      disc(bg, P.x, P.y, BADGE_R + 1, "#ffffff");
+      disc(bg, P.x, P.y, BADGE_R - 1, s.disc);
+      var sz = spriteSize(s.icon);
+      blit(bg, s.icon, P.x - Math.floor(sz.w / 2), P.y - Math.floor(sz.h / 2), { pal: s.iconPal });
+      taken.push({ x: P.x - BADGE_R - 2, y: P.y - BADGE_R - 2, w: BADGE_R * 2 + 4, h: BADGE_R * 2 + 4 });
+      taken.push(drawSign(bg, s.label, P.x + shape.signs[k][0], P.y + shape.signs[k][1]));
+      if (s.friend) {
+        var f = FRIENDS[s.friend.name], fs = spriteSize(s.friend.name === "bat" ? "bat_a" : s.friend.name);
+        taken.push({ x: f.x - fs.w / 2, y: f.y - fs.h - 8, w: fs.w, h: fs.h + 10 });
+      }
+    });
+
+    // scatter Texas doodles in the open grass
+    var doodles = ["bluebonnet", "sparkle", "bluebonnet", "pricklypear", "sparkle_pink", "boot", "note", "bluebonnet", "pricklypear", "sparkle"];
+    var placed = 0;
+    for (var tries = 0; tries < 2500 && placed < 30; tries++) {
+      var name = doodles[tries % doodles.length], sz = spriteSize(name);
+      var dx = Math.floor(r() * (W - sz.w)), dy = Math.floor(r() * (H - sz.h));
+      var box = { x: dx, y: dy, w: sz.w, h: sz.h };
+      if (nearTrail(dx + sz.w / 2, dy + sz.h / 2, 10 + Math.max(sz.w, sz.h) / 2) || inLake(dx + sz.w / 2, dy + sz.h / 2, 10) || overlaps(box, 3)) continue;
+      blit(bg, name, dx, dy); taken.push(box); placed++;
+    }
+    // grass tufts
+    for (var t = 0; t < 90; t++) {
+      var gx = Math.floor(r() * (W - 6)), gy = Math.floor(r() * (H - 4)) + 2;
+      if (nearTrail(gx, gy, 14) || inLake(gx, gy, 6) || overlaps({ x: gx, y: gy - 1, w: 5, h: 3 }, 1)) continue;
+      bg.fillStyle = "#6fa54a";
+      bg.fillRect(gx, gy, 1, 2); bg.fillRect(gx + 2, gy - 1, 1, 3); bg.fillRect(gx + 4, gy, 1, 2);
+    }
+  }
+
+  // =====================================================================
+  //  Animated layer
+  // =====================================================================
+  var board = document.getElementById("board");
+  var ctx = board.getContext("2d"); ctx.imageSmoothingEnabled = false;
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var token = { x: 0, y: 0, lift: 0 };
+  var tick = 0, winT = -1, flock = [];
+
+  function drawFriend(name, t) {
+    var f = FRIENDS[name], sprite = name;
+    if (name === "bat") sprite = (Math.floor(t / 6) % 2) ? "bat_b" : "bat_a";
+    var sz = spriteSize(sprite);
+    var bob = (name === "bat") ? (Math.floor(t / 6) % 2) : (Math.floor(t / 10) % 2);
+    if (name === "turtle") bob = Math.floor(t / 14) % 2;
+    var jump = f.hop > 0 ? Math.round(Math.sin((1 - f.hop / 12) * Math.PI) * 6) : 0;
+    if (name !== "bat") {
+      ctx.fillStyle = name === "turtle" ? "rgba(255,255,255,.45)" : "rgba(44,35,71,.25)";
+      ctx.fillRect(f.x - Math.floor(sz.w / 2) + 3, f.y, sz.w - 6, 2);
+    }
+    blit(ctx, sprite, f.x - Math.floor(sz.w / 2), f.y - sz.h - bob - jump, { flip: f.flip });
+    if (f.hop > 0) {
+      f.hop--;
+      ctx.fillStyle = "#fff36b";
+      var sx = f.x + Math.floor(sz.w / 2) - 2, sy = f.y - sz.h - 6;
+      ctx.fillRect(sx, sy - 2, 1, 5); ctx.fillRect(sx - 2, sy, 5, 1);
+    }
+  }
+
+  function render() {
+    ctx.drawImage(bgCanvas, 0, 0);
+    // water sparkles
+    for (var s = 0; s < 4; s++) {
+      var ph = (tick + s * 17) % 48;
+      if (ph < 24) {
+        var sx = LAKE.x - 36 + ((s * 23) % 70), sy = LAKE.y - 2 + ((s * 7) % 10);
+        ctx.fillStyle = "#e8f8ff"; ctx.fillRect(sx + (ph >> 3), sy, 3, 1);
+      }
+    }
+    Object.keys(FRIENDS).forEach(function (n) { drawFriend(n, tick); });
+
+    drawCardFx(performance.now());
+
+    // player token, drawn last so nothing covers it: a soft golden glow, then the elf in a white outline
+    var tz = spriteSize("token"), tx = Math.round(token.x), ty = Math.round(token.y), lift = Math.round(token.lift);
+    var glow = Math.floor(tick / 8) % 2; // a slow two-step shimmer
+    disc(ctx, tx, ty - 7 - lift, 13 + glow, "rgba(255,200,40,.4)");
+    disc(ctx, tx, ty - 7 - lift, 10 + glow, "rgba(255,236,120,.65)");
+    ctx.fillStyle = "rgba(44,35,71,.35)";
+    ctx.fillRect(tx - 5, ty + 1, 10, 2);
+    ctx.drawImage(outlined("token"), tx - Math.floor(tz.w / 2) - 1, ty - tz.h - lift - 1);
+    // a little "you are here" arrow bobbing over his hat
+    var ay = ty - tz.h - lift - 9 - glow;
+    ctx.fillStyle = "#2c2347"; ctx.fillRect(tx - 4, ay - 1, 9, 1);
+    for (var r = 0; r < 4; r++) {
+      ctx.fillStyle = "#2c2347"; ctx.fillRect(tx - 4 + r, ay + r, 9 - 2 * r, 1);
+      ctx.fillStyle = "#ffd23f"; if (r < 3) ctx.fillRect(tx - 3 + r, ay + r, 7 - 2 * r, 1);
+    }
+    if (winT >= 0) drawWin();
+  }
+
+  // =====================================================================
+  //  Card animations: each color sends its own little parade across the board
+  //  (index matches COLORS; a double card sends twice as many)
+  // =====================================================================
+  var CARD_FX = [
+    { kind: "rise",   sprites: ["bluebonnet"] },                  // Bluebonnet: a field of flowers floats up
+    { kind: "pop",    sprites: ["sparkle_pink", "pricklypear"] }, // Prickly pear: pink blooms pop all over
+    { kind: "streak", sprites: ["sparkle_orange"] },              // Sunset: shooting sparkles streak across
+    { kind: "breeze", sprites: ["leaf"] },                        // Live oak: leaves blow by on the wind
+    { kind: "dance",  sprites: ["note", "sparkle"] }              // Sunshine: music notes bounce across
+  ];
+  var FX_MS = 1500, cardFx = null;
+
+  function startCardFx(card) {
+    if (reduceMotion) return;
+    var def = CARD_FX[card.color], count = 5 + 3 * card.steps, parts = [];
+    for (var i = 0; i < count; i++) {
+      parts.push({
+        sprite: def.sprites[i % def.sprites.length],
+        x: Math.random() * W, y: Math.random() * H,
+        delay: Math.random() * 0.35, speed: 0.8 + Math.random() * 0.5, ph: Math.random() * 6.28,
+        row: i % 4, big: Math.random() < 0.7 ? 2 : 1
+      });
+    }
+    cardFx = { kind: def.kind, hex: COLORS[card.color].hex, start: performance.now(), parts: parts };
+  }
+
+  function drawCardFx(now) {
+    if (!cardFx) return;
+    var t = (now - cardFx.start) / FX_MS;
+    if (t >= 1) { cardFx = null; return; }
+    // a soft wash of the card's color over the board
+    ctx.globalAlpha = 0.16 * Math.sin(t * Math.PI);
+    ctx.fillStyle = cardFx.hex; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+    cardFx.parts.forEach(function (p) {
+      var u = (t - p.delay) / (1 - p.delay) * p.speed; // this particle's own 0..1
+      if (u < 0 || u > 1) return;
+      var sz = spriteSize(p.sprite), x, y, scale = p.big;
+      switch (cardFx.kind) {
+        case "rise":   x = p.x + Math.sin(u * 6 + p.ph) * 6; y = H + 10 - u * (H + 24); break;
+        case "pop":    x = p.x; y = p.y; scale = u < 0.2 ? 1 : u < 0.4 ? 2 : u < 0.7 ? 3 : u < 0.85 ? 2 : 0; break;
+        case "streak": x = -20 + u * (W + 40); y = p.y * 0.6 - 10 + u * 70;
+          ctx.fillStyle = cardFx.hex;
+          for (var k = 1; k <= 5; k++) ctx.fillRect(Math.round(x - k * 5), Math.round(y - k * 1.6 + sz.h / 2), 2, 1);
+          break;
+        case "breeze": x = W + 10 - u * (W + 30); y = p.y + Math.sin(u * 9 + p.ph) * 8; break;
+        default:       x = -14 + u * (W + 28); y = 30 + p.row * (H - 40) / 4 - Math.abs(Math.sin(u * 14 + p.ph)) * 14;
+      }
+      if (!scale) return;
+      ctx.drawImage(bakeSprite(p.sprite), Math.round(x - sz.w * scale / 2), Math.round(y - sz.h * scale / 2), sz.w * scale, sz.h * scale);
+    });
+  }
+
+  function drawWin() {
+    var a = Math.min(1, winT / 20);
+    ctx.fillStyle = "rgba(28,22,52," + (0.78 * a).toFixed(2) + ")";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#fff6c0";
+    for (var i = 0; i < 40; i++) if (((i * 7 + winT) >> 3) % 5) ctx.fillRect((i * 53) % W, (i * 37) % (H - 10), 1, 1);
+    flock.forEach(function (b) {
+      var t = winT - b.delay; if (t < 0) return;
+      var y = b.y0 - t * b.vy, x = b.x0 + Math.sin(t / 9 + b.ph) * 10 + t * b.vx;
+      if (y < -20) { b.delay = winT + Math.floor(Math.random() * 30); b.y0 = H + 10; return; }
+      blit(ctx, (Math.floor(t / 4) % 2) ? "bat_b" : "bat_a", x, y);
+    });
+  }
+
+  // Run the sprite animation at a chunky ~15 fps
+  var lastFrame = 0;
+  function frameDriver(ts) {
+    if (ts - lastFrame > 66) { lastFrame = ts; tick++; if (winT >= 0) winT++; render(); }
+    requestAnimationFrame(frameDriver);
+  }
+
+  // =====================================================================
+  //  Game flow
+  // =====================================================================
+  var deckBtn = document.getElementById("deck");
+  var deckCount = document.getElementById("deck-count");
+  var drawnBox = document.getElementById("drawn");
+  var storyEl = document.getElementById("story");
+  var storyCanvas = document.getElementById("story-canvas");
+  var storyTitle = document.getElementById("story-title");
+  var storyText = document.getElementById("story-text");
+  var progress = document.getElementById("progress");
+  var win = document.getElementById("win");
+  var gameEl = document.querySelector(".game");
+  var miniBox = document.getElementById("mini");
+  var latestBtn = document.getElementById("latest");
+  var flipBtn = document.getElementById("flip");
+  var logList = document.getElementById("log");
+  var continueBtn = document.getElementById("continue");
+
+  var STOPS_PER_GAME = FORKS.length * 2; // a landmark at each fork, Mural Mile, South Congress and the bridge
+  var pos, game, drawCount, route, busy, run = 0;
+
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, reduceMotion ? 0 : ms); }); }
+
+  function renderProgress() {
+    progress.innerHTML = "";
+    for (var i = 0; i < STOPS_PER_GAME; i++) { var s = document.createElement("span"); if (i < route.length) s.className = "on"; progress.appendChild(s); }
+    var small = document.createElement("small");
+    small.textContent = route.length + " of " + STOPS_PER_GAME + " stops · " + drawCount + (drawCount === 1 ? " card" : " cards") + " flipped";
+    progress.appendChild(small);
+    var left = game.deck.length - drawCount;
+    deckCount.textContent = left + " cards in the deck";
+  }
+
+  // `art` is a friend's name, a sprite name, or nothing
+  function setStory(title, text, art, note) {
+    storyTitle.textContent = title; storyText.textContent = text;
+    latestBtn.innerHTML = ""; var b = document.createElement("b"); b.textContent = title + " ";
+    latestBtn.appendChild(b); latestBtn.appendChild(document.createTextNode(text));
+    if (note) { var n = document.createElement("span"); n.className = "note"; n.textContent = note; storyText.appendChild(n); }
+    if (art) {
+      var sprite = art === "bat" ? "bat_a" : art, sz = spriteSize(sprite);
+      paintSpriteCanvas(storyCanvas, sprite, sz.w > 20 ? 4 : 6);
+      storyEl.classList.remove("no-art");
+    } else storyEl.classList.add("no-art");
+  }
+
+  function showCard(card) {
+    var c = COLORS[card.color];
+    drawnBox.innerHTML = "";
+    var face = document.createElement("div");
+    face.className = "card face px-frame flip" + (card.steps > 1 ? " double" : "");
+    face.style.background = c.hex;
+    var gem = document.createElement("span"); gem.className = "gem px-frame";
+    var cv = document.createElement("canvas"); paintSpriteCanvas(cv, c.icon, 4);
+    gem.appendChild(cv);
+    var label = document.createElement("span"); label.textContent = card.steps > 1 ? "Double " + c.name.toLowerCase() : c.name;
+    face.appendChild(gem); face.appendChild(label);
+    if (card.steps > 1) { var t = document.createElement("span"); t.className = "times px-frame"; t.textContent = "×2"; face.appendChild(t); }
+    drawnBox.appendChild(face);
+    miniBox.innerHTML = ""; miniBox.appendChild(face.cloneNode(true));
+  }
+  function showSlot() {
+    drawnBox.innerHTML = '<div class="slot px-frame">Your card shows here</div>';
+    miniBox.innerHTML = '<div class="slot px-frame"></div>';
+  }
+
+  function placeToken(id) { token.x = spaces[id].x; token.y = spaces[id].y + 2; token.lift = 0; }
+
+  function animate(ms, step) {
+    return new Promise(function (resolve) {
+      if (reduceMotion) { step(1); resolve(); return; }
+      var t0 = performance.now();
+      (function f(now) {
+        var t = Math.min(1, (now - t0) / ms); step(t);
+        if (t < 1) requestAnimationFrame(f); else resolve();
+      })(t0);
+    });
+  }
+  function hopTo(id) {
+    var a = { x: token.x, y: token.y }, b = { x: spaces[id].x, y: spaces[id].y + 2 };
+    return animate(230, function (t) {
+      var st = Math.round(t * 6) / 6; // step the motion so it moves in chunky frames
+      token.x = a.x + (b.x - a.x) * st; token.y = a.y + (b.y - a.y) * st; token.lift = Math.sin(st * Math.PI) * 7;
+    });
+  }
+  function rideTurtle() {
+    var ride = rides[pos], pts = ride.pts, f = FRIENDS.turtle;
+    return animate(1600, function (t) {
+      var p = pts[Math.round(t * (pts.length - 1))];
+      token.x = p.x; token.y = p.y - 4; token.lift = 0;
+      f.x = Math.round(p.x); f.y = Math.round(p.y) + 4; f.flip = true;
+    }).then(function () {
+      pos = ride.to; return hopTo(pos);
+    }).then(function () {
+      return wait(300);
+    }).then(function () { f.x = f.homeX; f.y = f.homeY; f.flip = false; });
+  }
+  function cheer(name) { if (FRIENDS[name]) FRIENDS[name].hop = 12; }
+
+  async function draw() {
+    if (busy || pos === "bridge") return;
+    var id = run;
+    busy = true; deckBtn.disabled = true; flipBtn.disabled = true; closeSheet();
+    var card = game.deck[drawCount], c = COLORS[card.color];
+    var path = plotMove(pos, card);
+    drawCount++; renderProgress(); showCard(card); startCardFx(card);
+    setStory(
+      card.steps > 1 ? "Double " + c.name.toLowerCase() + "!" : "You flipped " + c.name + ".",
+      card.steps > 1 ? "Hop two " + c.name.toLowerCase() + " spaces ahead." : "Hop to the next " + c.name.toLowerCase() + " space.",
+      null
+    );
+    await wait(1100);
+    for (var i = 0; i < path.length; i++) {
+      await hopTo(path[i]); if (id !== run) return; pos = path[i];
+    }
+
+    var key = spaces[pos].stop, stop = STOPS[key];
+    if (stop) {
+      route.push(key); renderProgress();
+      setStory(stop.title, freshTidbit(key, stop.facts), stop.friend ? stop.friend.name : stop.icon);
+      addToLog(stop.name, storyText.textContent);
+      if (stop.friend) cheer(stop.friend.name);
+      if (rides[pos]) { await wait(1800); if (id !== run) return; await rideTurtle(); }
+      if (pos === "bridge") { await wait(1400); if (id !== run) return; finish(); return; }
+    } else {
+      var title = TIDBIT_TITLES[drawCount % TIDBIT_TITLES.length];
+      setStory(title, freshTidbit("tidbits", TIDBITS), COLORS[spaces[pos].color].icon);
+      addToLog(c.name + " space", storyText.textContent);
+    }
+    if (id !== run) return;
+    busy = false; deckBtn.disabled = false; flipBtn.disabled = false;
+    if (pendingLayout) applyLayout(pendingLayout);
+    if (layout === "portrait") openSheet(); else deckBtn.focus({ preventScroll: true });
+  }
+
+  // "Your trip so far", newest first, shown in the phone window
+  function addToLog(where, what) {
+    var li = document.createElement("li"), b = document.createElement("b");
+    b.textContent = where + ": "; li.appendChild(b); li.appendChild(document.createTextNode(what));
+    logList.insertBefore(li, logList.firstChild);
+  }
+
+  // The phone window that slides up after each move
+  function openSheet() { gameEl.classList.add("sheet-open"); continueBtn.focus({ preventScroll: true }); }
+  function closeSheet() {
+    if (!gameEl.classList.contains("sheet-open")) return;
+    gameEl.classList.remove("sheet-open");
+    if (layout === "portrait" && !flipBtn.disabled) flipBtn.focus({ preventScroll: true });
+  }
+
+  function finish() {
+    var key = routeKey(route), firstTime = memory.found.indexOf(key) < 0;
+    memory.recent = memory.recent.filter(function (r) { return r !== key; }).concat([key]).slice(-ROUTE_MEMORY);
+    if (firstTime) memory.found.push(key);
+    memory.seqs = memory.seqs.concat([game.order]).slice(-50);
+    remember();
+
+    document.getElementById("win-text").textContent = "You flipped " + drawCount + " cards and wandered this way through Austin:";
+    var list = document.getElementById("win-route"); list.innerHTML = "";
+    ["start"].concat(route).forEach(function (k) { var li = document.createElement("li"); li.textContent = STOPS[k].name; list.appendChild(li); });
+    var left = ALL_ROUTES.length - memory.found.length;
+    document.getElementById("win-found").textContent =
+      (firstTime ? "New route! " : "") + "You’ve explored " + memory.found.length + " of " + ALL_ROUTES.length + " routes to Bat Bridge." +
+      (left ? " Play again to try a new path." : " You found them all. Way to go!");
+
+    flock = [];
+    var br = NODES.bridge;
+    for (var i = 0; i < 26; i++) {
+      flock.push({ x0: br.x - 10 + Math.random() * 40, y0: br.y + 20 + Math.random() * 30, vx: -0.3 + Math.random() * 1.6,
+                   vy: 0.9 + Math.random() * 1.1, ph: Math.random() * 6, delay: Math.floor(Math.random() * 30) });
+    }
+    for (var k = 0; k < 14; k++) {
+      flock.push({ x0: Math.random() * W, y0: H + 10 + Math.random() * 40, vx: (Math.random() - 0.5), vy: 1 + Math.random(),
+                   ph: Math.random() * 6, delay: 10 + Math.floor(Math.random() * 40) });
+    }
+    winT = 0;
+    closeSheet();
+    win.classList.add("show");
+    // On phones the results cover the page, so bring them into view (this also scrolls a page that embeds the game)
+    if (layout === "portrait") win.querySelector(".win-box").scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+    document.getElementById("again").focus({ preventScroll: true });
+  }
+
+  function reset() {
+    run++;
+    pos = "start"; drawCount = 0; route = []; busy = false; winT = -1; flock = [];
+    if (pendingLayout) applyLayout(pendingLayout);
+    game = dealGame();
+    logList.innerHTML = ""; closeSheet(); flipBtn.disabled = false;
+    Object.keys(FRIENDS).forEach(function (n) { var f = FRIENDS[n]; f.x = f.homeX; f.y = f.homeY; f.flip = false; });
+    placeToken(pos); token.x += 15; token.y -= 3;
+    win.classList.remove("show");
+    showSlot();
+    deckBtn.disabled = false;
+    setStory("Welcome to Austin!", "Bea the Bat is waiting at the Congress Avenue Bridge. Flip a card and hop to the next space of that color. The trail forks three times, so every trip takes a different route.", "bat");
+    renderProgress();
+  }
+
+  deckBtn.addEventListener("click", draw);
+  flipBtn.addEventListener("click", draw);
+  continueBtn.addEventListener("click", closeSheet);
+  document.getElementById("scrim").addEventListener("click", closeSheet);
+  latestBtn.addEventListener("click", openSheet);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
+  document.getElementById("again").addEventListener("click", function () {
+    reset(); (layout === "portrait" ? flipBtn : deckBtn).focus({ preventScroll: true });
+  });
+
+  // =====================================================================
+  //  Layout: the landscape board with cards underneath on wide screens, or the portrait board
+  //  filling the screen with a slide-up window on phones. It goes by the game's own width,
+  //  so it works the same full-page or embedded in a narrow column.
+  // =====================================================================
+  var BREAKPOINT = 640, layout = null, pendingLayout = null;
+  function pickLayout() {
+    var sideways = window.innerHeight < 500 && window.innerWidth > window.innerHeight;
+    return gameEl.clientWidth < BREAKPOINT || sideways ? "portrait" : "landscape";
+  }
+  // Waits until the elf stops moving, then swaps boards and puts him on the matching space.
+  function applyLayout(name) {
+    if (busy) { pendingLayout = name; return; }
+    pendingLayout = null;
+    if (name === layout) return;
+    layout = name; gameEl.dataset.layout = name;
+    // no slide-in while the layout itself changes
+    gameEl.classList.add("switching");
+    requestAnimationFrame(function () { requestAnimationFrame(function () { gameEl.classList.remove("switching"); }); });
+    if (name === "landscape") gameEl.classList.remove("sheet-open");
+    var oldSpaces = spaces;
+    useBoard(name);
+    if (oldSpaces && pos) {
+      pos = sameSpot(pos, oldSpaces);
+      placeToken(pos); if (pos === "start") { token.x += 15; token.y -= 3; }
+    }
+  }
+  function useBoard(name) {
+    shape = BOARDS[name]; W = shape.W; H = shape.H; LAKE = shape.lake; NODES = {};
+    Object.keys(shape.nodes).forEach(function (id) { NODES[id] = { x: shape.nodes[id][0], y: shape.nodes[id][1] }; });
+    buildTrail(); placeFriends();
+    bgCanvas.width = W; bgCanvas.height = H; taken = []; paintBackground();
+    board.width = W; board.height = H; ctx.imageSmoothingEnabled = false;
+  }
+  // The same spot on the other board: landmarks match exactly; a plain space keeps its place along its stretch of trail.
+  function sameSpot(id, oldSpaces) {
+    var m = /^(.+):(\d+)$/.exec(id); if (!m) return id;
+    var count = function (all) { return Object.keys(all).filter(function (k) { return k.indexOf(m[1] + ":") === 0; }).length; };
+    var before = count(oldSpaces), now = count(spaces);
+    if (!now) return m[1].split(">")[0];
+    return m[1] + ":" + Math.min(now, Math.max(1, Math.round(+m[2] * (now + 1) / (before + 1))));
+  }
+  new ResizeObserver(function () { applyLayout(pickLayout()); }).observe(gameEl);
+  window.addEventListener("resize", function () { applyLayout(pickLayout()); });
+
+  // When embedded in an iframe, tell the host page how tall the game is so the frame can fit it
+  if (window.parent !== window && window.ResizeObserver) {
+    new ResizeObserver(function () {
+      window.parent.postMessage({ batBridgeHeight: Math.ceil(document.body.getBoundingClientRect().height), batBridgeLayout: layout }, "*");
+    }).observe(document.body);
+  }
+
+  applyLayout(pickLayout());
+  reset();
+  render();
+  if (reduceMotion) {
+    // Still animate moves, but skip idle bobbing: redraw only while something changes.
+    (function still() { render(); requestAnimationFrame(still); })();
+  } else {
+    requestAnimationFrame(frameDriver);
+  }
+})();
+</script>
+</body>
+</html>

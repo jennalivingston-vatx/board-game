@@ -1,0 +1,27 @@
+{
+  "name": "Destination Converge 2026",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "npm install -g pnpm@11.9.0 @openai/codex && make install",
+  "postStartCommand": "sh .devcontainer/name-worker.sh",
+  "postAttachCommand": "make run",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "Website",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "openai.chatgpt",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ]
+    }
+  }
+}
