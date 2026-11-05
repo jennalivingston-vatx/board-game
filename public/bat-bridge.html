@@ -229,7 +229,7 @@
 
   <div class="screen px-frame">
     <canvas id="board" width="320" height="224" role="img"
-      aria-label="Pixel-art game board: a trail from the start that forks three times on its way to the Congress Avenue Bat Bridge. First fork: Barton Springs or Zilker Park. Then Mural Mile. Second fork: Circuit of The Americas or tacos and barbecue. Then shopping on South Congress. Third fork: live music downtown, or a turtle ride across Lady Bird Lake."></canvas>
+      aria-label="Pixel-art game board: a trail from the start that forks three times on its way to the Congress Avenue Bat Bridge. First fork: Barton Springs or Zilker Park. Then Mural Stop. Second fork: Circuit of The Americas or tacos and barbecue. Then shopping on South Congress. Third fork: live music downtown, or the hike-and-bike trail, where a turtle gives you a ride across Lady Bird Lake."></canvas>
     <div class="win" id="win" aria-live="polite">
       <div class="win-box px-frame">
         <canvas data-sprite="bat_a" data-scale="4" aria-hidden="true"></canvas>
@@ -609,7 +609,7 @@
     "3":["##.","..#",".#.","..#","##."], "4":["#.#","#.#","###","..#","..#"], "5":["###","#..","##.","..#","##."],
     "6":[".##","#..","###","#.#","###"], "7":["###","..#",".#.",".#.",".#."], "8":["###","#.#","###","#.#","###"],
     "9":["###","#.#","###","..#","##."], "&":[".#..","#.#.",".#..","#.##",".##."], " ":["..","..","..","..",".."],
-    "!":["#","#","#",".","#"]
+    "!":["#","#","#",".","#"], "-":["...","...","###","...","..."]
   };
 
   // =====================================================================
@@ -655,7 +655,7 @@
       ]
     },
     murals: {
-      name: "Mural Mile", icon: "ico_murals", disc: "#fbe0ea", label: "MURAL MILE",
+      name: "Mural Stop", icon: "ico_murals", disc: "#fbe0ea", label: "MURAL STOP",
       friend: { name: "armadillo" },
       title: "Say cheese at the South Austin murals!",
       facts: [
@@ -703,13 +703,13 @@
       ]
     },
     turtle: {
-      name: "Turtle Ride", icon: "ico_ring", disc: "#cdeef7", label: "TURTLE RIDE",
+      name: "Hike-and-Bike Trail", icon: "ico_ring", disc: "#cdeef7", label: "HIKE-AND-BIKE TRAIL",
       friend: { name: "turtle" },
-      title: "Shelly the Turtle offers you a ride!",
+      title: "Shelley the Turtle offers you a ride!",
       facts: [
-        "Lady Bird Lake is named for former first lady Lady Bird Johnson. Hop on Shelly’s shell to float across!",
-        "Motorboats aren’t allowed on most of Lady Bird Lake, so it’s full of kayaks, canoes and paddleboards. Shelly paddles you across!",
-        "A 10-mile hike-and-bike trail loops around Lady Bird Lake. Shelly knows a faster way across!"
+        "Lady Bird Lake is named for former first lady Lady Bird Johnson. Hop on Shelley’s shell to float across!",
+        "Motorboats aren’t allowed on most of Lady Bird Lake, so it’s full of kayaks, canoes and paddleboards. Shelley paddles you across!",
+        "A 10-mile hike-and-bike trail loops around Lady Bird Lake. Shelley knows a faster way across!"
       ]
     },
     bridge: {
@@ -784,7 +784,7 @@
               "turtle>landing": [[92, 88]], "landing>bridge": [[18, 68]] },
       labels: { cota: "COTA RACETRACK" }, // the full name is too long for this board
       signs: { start: [0, 13], barton: [-6, -23], zilker: [0, -24], murals: [0, 13], tacos: [0, 13], cota: [-48, -4],
-               soco: [-30, 15], music: [-4, 14], turtle: [6, 13], bridge: [4, -24] },
+               soco: [-30, 15], music: [-4, 14], turtle: [8, 20], bridge: [4, -24] },
       friends: { barton: [32, 2], murals: [8, -20], music: [0, 44], turtle: [-22, 6], bridge: [34, 36] }
     },
     // The elf starts at the bottom and winds up the board to Bat Bridge at the top.
@@ -797,7 +797,7 @@
               "s2>cota": [[208, 204]], "s2>tacos": [[170, 250]], "cota>soco": [[74, 186]], "tacos>soco": [[70, 246]],
               "s3>music": [[18, 132]], "s3>turtle": [[70, 162]], "music>bridge": [[38, 42], [110, 22]], "turtle>landing": [[166, 76]] },
       signs: { start: [0, -24], barton: [0, -24], zilker: [0, -24], murals: [-38, -34], tacos: [20, -24], cota: [0, -24],
-               soco: [54, -2], music: [42, -4], turtle: [42, 2], bridge: [-34, 18] },
+               soco: [54, -2], music: [42, -4], turtle: [54, 2], bridge: [-34, 18] },
       friends: { barton: [20, 30], murals: [-22, 20], music: [44, -12], turtle: [-4, -12], bridge: [-94, 34] }
     }
   };
@@ -1314,7 +1314,7 @@
   var flipBtn = document.getElementById("flip");
   var continueBtn = document.getElementById("continue");
 
-  var STOPS_PER_GAME = FORKS.length * 2; // a landmark at each fork, Mural Mile, South Congress and the bridge
+  var STOPS_PER_GAME = FORKS.length * 2; // a landmark at each fork, Mural Stop, South Congress and the bridge
   var pos, game, drawCount, route, busy, run = 0;
 
   function wait(ms) { return new Promise(function (r) { setTimeout(r, reduceMotion ? 0 : ms); }); }
