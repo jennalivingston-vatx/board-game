@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 
 export default defineConfig({
+  // GitHub Pages serves the site from /<repo-name>/; BASE_PATH is set by the Pages workflow.
+  base: process.env.BASE_PATH || '/',
   plugins: [
     // Generates src/routeTree.gen.js from the files in src/routes/. Must come before react().
     tanstackRouter({ target: 'react', disableTypes: true }),

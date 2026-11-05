@@ -9,5 +9,5 @@ function Home() {
   useEffect(() => {
     document.title = 'Bat Bridge Bound: An Austin Adventure';
   }, []);
-  return <iframe src="/bat-bridge.html" title="Bat Bridge Bound: an Austin board game" className="block h-dvh w-full border-0" />;
+  return <iframe src={`${import.meta.env.BASE_URL}bat-bridge.html`} title="Bat Bridge Bound: an Austin board game" className="block h-dvh w-full border-0" />;
 }
