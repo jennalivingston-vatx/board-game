@@ -69,7 +69,7 @@
     align-items: center;
     margin-top: 22px;
   }
-  .bar, .scrim, .log, .continue { display: none; }
+  .bar, .scrim, .continue { display: none; }
   .deck {
     appearance: none; border: 0; padding: 0; background: none; cursor: pointer;
     font: inherit; color: inherit; display: grid; justify-items: center; gap: 10px;
@@ -208,12 +208,6 @@
   .game[data-layout="portrait"] .story { min-height: 0; padding: 10px 12px; grid-template-columns: 1fr; }
   .game[data-layout="portrait"] .story h2 { font-size: 1.1rem; }
   .game[data-layout="portrait"] .story p { font-size: .95rem; }
-  .game[data-layout="portrait"] .log { display: block; grid-column: 1 / -1; }
-  .log h3 { margin: 0 0 6px; font-size: .95rem; font-weight: 600; }
-  .log ol { margin: 0; padding-left: 20px; max-height: 150px; overflow-y: auto; font-size: .82rem; line-height: 1.35; color: var(--ink-soft); }
-  .log li { margin-bottom: 4px; }
-  .log li b { color: var(--ink); font-weight: 600; }
-  .log li:first-child { color: var(--ink); }
   .game[data-layout="portrait"] .continue {
     display: block; grid-column: 1 / -1; margin: 4px var(--px) var(--px);
     appearance: none; border: 0; font: inherit; font-weight: 600; font-size: 1.1rem; cursor: pointer;
@@ -278,10 +272,6 @@
       </div>
     </div>
 
-    <div class="log">
-      <h3>Your trip so far</h3>
-      <ol id="log" reversed></ol>
-    </div>
     <button class="continue px-frame" id="continue">Continue</button>
   </div>
 </div>
@@ -1319,7 +1309,6 @@
   var miniBox = document.getElementById("mini");
   var latestBtn = document.getElementById("latest");
   var flipBtn = document.getElementById("flip");
-  var logList = document.getElementById("log");
   var continueBtn = document.getElementById("continue");
 
   var STOPS_PER_GAME = FORKS.length * 2; // a landmark at each fork, Mural Mile, South Congress and the bridge
@@ -1424,26 +1413,17 @@
     if (stop) {
       route.push(key); renderProgress();
       setStory(stop.title, freshTidbit(key, stop.facts), stop.friend ? stop.friend.name : stop.icon);
-      addToLog(stop.name, storyText.textContent);
       if (stop.friend) cheer(stop.friend.name);
       if (rides[pos]) { await wait(1800); if (id !== run) return; await rideTurtle(); }
       if (pos === "bridge") { await wait(1400); if (id !== run) return; finish(); return; }
     } else {
       var title = TIDBIT_TITLES[drawCount % TIDBIT_TITLES.length];
       setStory(title, freshTidbit("tidbits", TIDBITS), COLORS[spaces[pos].color].icon);
-      addToLog(c.name + " space", storyText.textContent);
     }
     if (id !== run) return;
     busy = false; deckBtn.disabled = false; flipBtn.disabled = false;
     if (pendingLayout) applyLayout(pendingLayout);
     if (layout === "portrait") openSheet(); else deckBtn.focus({ preventScroll: true });
-  }
-
-  // "Your trip so far", newest first, shown in the phone window
-  function addToLog(where, what) {
-    var li = document.createElement("li"), b = document.createElement("b");
-    b.textContent = where + ": "; li.appendChild(b); li.appendChild(document.createTextNode(what));
-    logList.insertBefore(li, logList.firstChild);
   }
 
   // The phone window that slides up after each move
@@ -1492,7 +1472,7 @@
     pos = "start"; drawCount = 0; route = []; busy = false; winT = -1; flock = [];
     if (pendingLayout) applyLayout(pendingLayout);
     game = dealGame();
-    logList.innerHTML = ""; closeSheet(); flipBtn.disabled = false;
+    closeSheet(); flipBtn.disabled = false;
     Object.keys(FRIENDS).forEach(function (n) { var f = FRIENDS[n]; f.x = f.homeX; f.y = f.homeY; f.flip = false; });
     placeToken(pos); token.x += 15; token.y -= 3;
     win.classList.remove("show");
