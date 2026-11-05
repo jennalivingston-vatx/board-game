@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sableponies",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "sableponies.crowdriff.build", "custom_domain": true }],
+  "assets": {
+    "directory": "./dist",
+    // Serve index.html for page addresses like /hotels, so TanStack Router can handle them.
+    "not_found_handling": "single-page-application"
+  }
+}
