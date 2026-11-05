@@ -229,7 +229,7 @@
 
   <div class="screen px-frame">
     <canvas id="board" width="320" height="224" role="img"
-      aria-label="Pixel-art game board: a trail from the start that forks three times on its way to the Congress Avenue Bat Bridge. First fork: Barton Springs or Zilker Park. Then Mural Mile. Second fork: Mount Bonnell or tacos and barbecue. Then shopping on South Congress. Third fork: live music downtown, or a turtle ride across Lady Bird Lake."></canvas>
+      aria-label="Pixel-art game board: a trail from the start that forks three times on its way to the Congress Avenue Bat Bridge. First fork: Barton Springs or Zilker Park. Then Mural Mile. Second fork: Circuit of The Americas or tacos and barbecue. Then shopping on South Congress. Third fork: live music downtown, or a turtle ride across Lady Bird Lake."></canvas>
     <div class="win" id="win" aria-live="polite">
       <div class="win-box px-frame">
         <canvas data-sprite="bat_a" data-scale="4" aria-hidden="true"></canvas>
@@ -556,19 +556,19 @@
        ".....t.....",
        "....rtr....",
        "......t...."]],
-    "ico_mountain": [{"g": "#6aa84f", "G": "#4f8a3c", "y": "#ef8a2b", "W": "#3d7f9a", "w": "#6fb3cf"},
-      ["..........yy....",
-       ".........yyyy...",
-       "......k..yyyy...",
-       ".....kgk..yy....",
-       "....kgggk.......",
-       "...kggGggk......",
-       "..kgggGgggkk....",
-       ".kggGgggggggkk..",
-       "kgggggGggggggggk",
-       "kkkkkkkkkkkkkkkk",
-       "WWwWWWWwWWWWwWWW",
-       "wWWWwWWWWwWWWWwW"]],
+    "ico_flag": [{"p": "#c9c3da", "d": "#1d1a26", "w": "#ffffff", "r": "#d9483b"},
+      [".kk.............",
+       ".kpkkkkkkkkkkkk.",
+       ".kpkwwddwwddwwk.",
+       ".kpkwwddwwddwwk.",
+       ".kpkddwwddwwddk.",
+       ".kpkddwwddwwddk.",
+       ".kpkwwddwwddwwk.",
+       ".kpkwwddwwddwwk.",
+       ".kpkkkkkkkkkkkk.",
+       ".kpk............",
+       "krrrk...........",
+       "kkkkk..........."]],
     "ico_shopping": [{"p": "#d63c78", "b": "#3f5fc8", "y": "#f3c33b"},
       ["...kkk..........",
        "..k...k...kkk...",
@@ -673,13 +673,14 @@
         "Franklin Barbecue started out in a trailer in 2009. Austin’s food trucks launch lots of famous restaurants."
       ]
     },
-    bonnell: {
-      name: "Mount Bonnell", icon: "ico_mountain", disc: "#ffe2c4", label: "MOUNT BONNELL",
-      title: "What a view from Mount Bonnell!",
+    cota: {
+      name: "Circuit of The Americas", icon: "ico_flag", disc: "#ffd6cf", label: "CIRCUIT OF THE AMERICAS",
+      title: "Start your engines at Circuit of The Americas!",
       facts: [
-        "About 100 limestone steps lead to the top, one of the highest points in Austin.",
-        "From the top you can see Lake Austin winding below and the Pennybacker Bridge in the distance.",
-        "Mount Bonnell has been a favorite lookout since the 1850s. Come at sunset for the best colors."
+        "Every fall, Formula 1’s United States Grand Prix roars into Circuit of The Americas, drawing fans from around the world.",
+        "Motorcycle racers lean through the turns at the MotoGP Grand Prix of the Americas, held here since 2013.",
+        "NASCAR’s top series has raced at COTA since 2021, one of the few road courses on its schedule.",
+        "The track’s first turn sits atop a steep hill, and the 251-foot observation tower gives a bird’s-eye view of the whole circuit."
       ]
     },
     soco: {
@@ -724,7 +725,7 @@
   };
 
   // The trail forks three times. Each fork leads past one of two landmarks, so there are 8 routes.
-  var FORKS = [["barton", "zilker"], ["bonnell", "tacos"], ["music", "turtle"]];
+  var FORKS = [["barton", "zilker"], ["cota", "tacos"], ["music", "turtle"]];
 
   // Tidbits for the plain spaces between landmarks.
   var TIDBITS = [
@@ -755,7 +756,7 @@
   // What sits on each point of the trail; the same on both boards.
   var NODE_INFO = {
     start: { stop: "start" }, s1: { color: 4 }, barton: { stop: "barton" }, zilker: { stop: "zilker" },
-    murals: { stop: "murals" }, s2: { color: 1 }, bonnell: { stop: "bonnell" }, tacos: { stop: "tacos" },
+    murals: { stop: "murals" }, s2: { color: 1 }, cota: { stop: "cota" }, tacos: { stop: "tacos" },
     soco: { stop: "soco" }, s3: { color: 2 }, music: { stop: "music" }, turtle: { stop: "turtle" },
     landing: { color: 0 }, bridge: { stop: "bridge" }
   };
@@ -763,7 +764,7 @@
   var EDGES = [
     ["start", "s1", { c: 0 }], ["s1", "barton", { c: 0 }], ["s1", "zilker", { c: 2 }],
     ["barton", "murals", { c: 3 }], ["zilker", "murals", { c: 1 }], ["murals", "s2", { c: 4 }],
-    ["s2", "bonnell", { c: 0 }], ["s2", "tacos", { c: 2 }], ["bonnell", "soco", { c: 3 }],
+    ["s2", "cota", { c: 0 }], ["s2", "tacos", { c: 2 }], ["cota", "soco", { c: 3 }],
     ["tacos", "soco", { c: 4 }], ["soco", "s3", { c: 0 }], ["s3", "music", { c: 0 }],
     ["s3", "turtle", { c: 2 }], ["music", "bridge", { c: 4 }], ["turtle", "landing", { ride: true }],
     ["landing", "bridge", { c: 1 }]
@@ -775,13 +776,14 @@
     landscape: {
       W: 320, H: 224, lake: { x: 92, y: 92, rx: 50, ry: 16 },
       nodes: { start: [18, 196], s1: [48, 190], barton: [92, 142], zilker: [104, 204], murals: [168, 190], s2: [196, 178],
-               bonnell: [222, 134], tacos: [262, 200], soco: [292, 126], s3: [262, 90], music: [222, 34], turtle: [152, 100],
+               cota: [222, 134], tacos: [262, 200], soco: [292, 126], s3: [262, 90], music: [222, 34], turtle: [152, 100],
                landing: [30, 104], bridge: [30, 30] },
       ways: { "s1>barton": [[58, 160]], "s1>zilker": [[74, 208]], "barton>murals": [[134, 166]], "zilker>murals": [[138, 208]],
-              "s2>bonnell": [[200, 152]], "s2>tacos": [[228, 206]], "bonnell>soco": [[258, 114]], "tacos>soco": [[304, 174]],
+              "s2>cota": [[200, 152]], "s2>tacos": [[228, 206]], "cota>soco": [[258, 114]], "tacos>soco": [[304, 174]],
               "soco>s3": [[290, 98]], "s3>music": [[256, 52]], "s3>turtle": [[206, 110]], "music>bridge": [[160, 22], [96, 40]],
               "turtle>landing": [[92, 88]], "landing>bridge": [[18, 68]] },
-      signs: { start: [0, 13], barton: [-6, -23], zilker: [0, -24], murals: [0, 13], tacos: [0, 13], bonnell: [-48, -4],
+      labels: { cota: "COTA RACETRACK" }, // the full name is too long for this board
+      signs: { start: [0, 13], barton: [-6, -23], zilker: [0, -24], murals: [0, 13], tacos: [0, 13], cota: [-48, -4],
                soco: [-30, 15], music: [-4, 14], turtle: [6, 13], bridge: [4, -24] },
       friends: { barton: [32, 2], murals: [8, -20], music: [0, 44], turtle: [-22, 6], bridge: [34, 36] }
     },
@@ -789,12 +791,12 @@
     portrait: {
       W: 240, H: 344, lake: { x: 166, y: 100, rx: 46, ry: 14 },
       nodes: { start: [22, 326], s1: [52, 322], barton: [86, 284], zilker: [150, 326], murals: [212, 296], s2: [212, 256],
-               bonnell: [132, 190], tacos: [120, 240], soco: [28, 216], s3: [30, 172], music: [30, 92], turtle: [114, 128],
+               cota: [132, 190], tacos: [120, 240], soco: [28, 216], s3: [30, 172], music: [30, 92], turtle: [114, 128],
                landing: [218, 70], bridge: [206, 26] },
       ways: { "s1>barton": [[56, 298]], "s1>zilker": [[100, 332]], "barton>murals": [[150, 280]], "zilker>murals": [[190, 326]],
-              "s2>bonnell": [[208, 204]], "s2>tacos": [[170, 250]], "bonnell>soco": [[74, 186]], "tacos>soco": [[70, 246]],
+              "s2>cota": [[208, 204]], "s2>tacos": [[170, 250]], "cota>soco": [[74, 186]], "tacos>soco": [[70, 246]],
               "s3>music": [[18, 132]], "s3>turtle": [[70, 162]], "music>bridge": [[38, 42], [110, 22]], "turtle>landing": [[166, 76]] },
-      signs: { start: [0, -24], barton: [0, -24], zilker: [0, -24], murals: [-38, -34], tacos: [20, -24], bonnell: [0, -24],
+      signs: { start: [0, -24], barton: [0, -24], zilker: [0, -24], murals: [-38, -34], tacos: [20, -24], cota: [0, -24],
                soco: [54, -2], music: [42, -4], turtle: [42, 2], bridge: [-34, 18] },
       friends: { barton: [20, 30], murals: [-22, 20], music: [44, -12], turtle: [-4, -12], bridge: [-94, 34] }
     }
@@ -809,7 +811,8 @@
     var m = null;
     try { m = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { /* storage blocked */ }
     m = m && typeof m === "object" ? m : {};
-    return { recent: m.recent || [], found: m.found || [], seqs: m.seqs || [], seen: m.seen || {} };
+    var renamed = function (list) { return list.map(function (r) { return String(r).replace("bonnell", "cota"); }); }; // Mount Bonnell became COTA
+    return { recent: renamed(m.recent || []), found: renamed(m.found || []), seqs: m.seqs || [], seen: m.seen || {} };
   })();
   function remember() { try { localStorage.setItem(STORE_KEY, JSON.stringify(memory)); } catch (e) { /* storage blocked */ } }
 
@@ -1130,7 +1133,7 @@
       var sz = spriteSize(s.icon);
       blit(bg, s.icon, P.x - Math.floor(sz.w / 2), P.y - Math.floor(sz.h / 2), { pal: s.iconPal });
       taken.push({ x: P.x - BADGE_R - 2, y: P.y - BADGE_R - 2, w: BADGE_R * 2 + 4, h: BADGE_R * 2 + 4 });
-      taken.push(drawSign(bg, s.label, P.x + shape.signs[k][0], P.y + shape.signs[k][1]));
+      taken.push(drawSign(bg, (shape.labels && shape.labels[k]) || s.label, P.x + shape.signs[k][0], P.y + shape.signs[k][1]));
       if (s.friend) {
         var f = FRIENDS[s.friend.name], fs = spriteSize(s.friend.name === "bat" ? "bat_a" : s.friend.name);
         taken.push({ x: f.x - fs.w / 2, y: f.y - fs.h - 8, w: fs.w, h: fs.h + 10 });
