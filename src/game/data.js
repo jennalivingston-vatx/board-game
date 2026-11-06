@@ -79,7 +79,7 @@ export const ITINERARIES = {
   },
   music: {
     title: 'The Live Music Crawl',
-    tagline: 'You followed the music. Welcome to the Live Music Capital of the World.',
+    tagline: 'You followed the music. Welcome to the Live Music Capital of the World®.',
     stops: [
       { time: 'Morning', what: 'Dig through the racks at Waterloo Records', tip: 'Then snap a photo with the Stevie Ray Vaughan statue on Lady Bird Lake.' },
       { time: 'Afternoon', what: "Barbecue and a show at Stubb's", tip: 'Check the lineup for outdoor concerts on the big stage.' },
