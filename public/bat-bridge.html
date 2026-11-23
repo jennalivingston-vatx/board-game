@@ -17,6 +17,7 @@
     --panel-text: #2c2347;
     --blue: #3f5fc8;
     --pink: #d63c78;
+    --flip: #f58b85; /* the "Flip a card" buttons */
     --orange: #ef8a2b;
     --yellow: #f3c33b;
     --night: #2c2347;
@@ -80,7 +81,7 @@
   }
   .deck:hover .deck-stack { transform: translateY(-4px); }
   .deck-label {
-    background: var(--pink); color: #fff; font-weight: 600; font-size: 1.05rem;
+    background: var(--flip); color: #2c2347; font-weight: 600; font-size: 1.05rem;
     padding: 6px 14px; margin: var(--px); white-space: nowrap; --frame: #2c2347;
   }
   .deck-count { font-size: .9rem; color: var(--ink-soft); margin-top: -4px; }
@@ -161,7 +162,7 @@
   .latest b { color: var(--panel-text); font-weight: 600; }
   .flip-btn {
     appearance: none; border: 0; font: inherit; font-weight: 600; font-size: 1rem; cursor: pointer;
-    background: var(--pink); color: #fff; padding: 10px 12px; margin: var(--px); white-space: nowrap; --frame: #2c2347;
+    background: var(--flip); color: #2c2347; padding: 10px 12px; margin: var(--px); white-space: nowrap; --frame: #2c2347;
   }
   .flip-btn[disabled] { background: #8a83a3; cursor: default; }
   .flip-btn:focus-visible, .latest:focus-visible, .continue:focus-visible { outline: 3px dashed var(--blue); outline-offset: 6px; }
@@ -1095,9 +1096,10 @@
     if (artReady("token")) blit(ctx, "token", tx - tz.w / 2, ty - tz.h - lift);
     else ctx.drawImage(outlined("token"), tx - Math.floor(tz.w / 2) - 1, ty - tz.h - lift - 1);
     // a little "you are here" arrow bobbing over his hat
-    // Sized in screen pixels so it looks the same on every device: 26 x 18, with a 4-pixel outline like the buttons' borders.
+    // Sized in screen pixels, with a 4-pixel outline like the buttons' borders: 26 x 18, or 16 x 11 on the smaller phone board.
     var k = W / (board.clientWidth || W); // board units per screen pixel
-    var tip = ty - tz.h - lift - 6 * k - glow, aw = 13 * k, ah = 18 * k;
+    var small = layout === "portrait", aw = (small ? 8 : 13) * k, ah = (small ? 11 : 18) * k;
+    var tip = ty - tz.h - lift - (small ? 4 : 6) * k - glow;
     ctx.beginPath(); ctx.moveTo(tx - aw, tip - ah); ctx.lineTo(tx + aw, tip - ah); ctx.lineTo(tx, tip); ctx.closePath();
     ctx.fillStyle = "#ffd23f"; ctx.fill();
     ctx.lineWidth = 4 * k; ctx.lineJoin = "round";
