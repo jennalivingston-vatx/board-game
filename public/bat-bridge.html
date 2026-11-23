@@ -1101,12 +1101,13 @@
     if (artReady("token")) blit(ctx, "token", tx - tz.w / 2, ty - tz.h - lift);
     else ctx.drawImage(outlined("token"), tx - Math.floor(tz.w / 2) - 1, ty - tz.h - lift - 1);
     // a little "you are here" arrow bobbing over his hat
-    var ay = ty - tz.h - lift - 9 - glow;
-    ctx.fillStyle = "#2c2347"; ctx.fillRect(tx - 4, ay - 1, 9, 1);
-    for (var r = 0; r < 4; r++) {
-      ctx.fillStyle = "#2c2347"; ctx.fillRect(tx - 4 + r, ay + r, 9 - 2 * r, 1);
-      ctx.fillStyle = "#ffd23f"; if (r < 3) ctx.fillRect(tx - 3 + r, ay + r, 7 - 2 * r, 1);
-    }
+    // Sized in screen pixels so it looks the same on every device: 26 x 18, with a 4-pixel outline like the buttons' borders.
+    var k = W / (board.clientWidth || W); // board units per screen pixel
+    var tip = ty - tz.h - lift - 6 * k - glow, aw = 13 * k, ah = 18 * k;
+    ctx.beginPath(); ctx.moveTo(tx - aw, tip - ah); ctx.lineTo(tx + aw, tip - ah); ctx.lineTo(tx, tip); ctx.closePath();
+    ctx.fillStyle = "#ffd23f"; ctx.fill();
+    ctx.lineWidth = 4 * k; ctx.lineJoin = "round";
+    ctx.strokeStyle = "#2c2347"; ctx.stroke();
     if (winT >= 0) drawWin();
   }
 
