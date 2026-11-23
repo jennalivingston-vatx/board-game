@@ -68,6 +68,14 @@
     margin-top: 22px;
   }
   .bar, .scrim, .continue { display: none; }
+
+  /* Wide but short windows (like an embed under a site header): the deck, card and story move to a
+     column beside the board so the board can use the full height. The board's width is set in script. */
+  .game.side { max-width: none; display: grid; grid-template-columns: auto 300px; column-gap: 24px; justify-content: center; align-items: start; }
+  .game.side .controls { margin: var(--px) 0 0; grid-template-columns: auto auto; justify-content: start; gap: 18px; }
+  .game.side .story { grid-column: 1 / -1; grid-template-columns: 1fr; gap: 8px; min-height: 0; }
+  .game.side .story-art { width: 72px; }
+  .game.side .story-art canvas { max-width: 72px; }
   .deck {
     appearance: none; border: 0; padding: 0; background: none; cursor: pointer;
     font: inherit; color: inherit; display: grid; justify-items: center; gap: 10px;
@@ -1385,7 +1393,8 @@
   var BREAKPOINT = 640, layout = null, pendingLayout = null;
   function pickLayout() {
     var sideways = window.innerHeight < 500 && window.innerWidth > window.innerHeight;
-    return gameEl.clientWidth < BREAKPOINT || sideways ? "portrait" : "landscape";
+    // Decide by the window's width, not the game's, since the game's own width changes with the layout.
+    return document.documentElement.clientWidth < BREAKPOINT || sideways ? "portrait" : "landscape";
   }
   // Waits until the elf stops moving, then swaps boards and puts him on the matching space.
   function applyLayout(name) {
@@ -1420,18 +1429,35 @@
     if (!now) return m[1].split(">")[0];
     return m[1] + ":" + Math.min(now, Math.max(1, Math.round(+m[2] * (now + 1) / (before + 1))));
   }
-  new ResizeObserver(function () { applyLayout(pickLayout()); }).observe(gameEl);
-  window.addEventListener("resize", function () { applyLayout(pickLayout()); });
-
-  // When embedded in an iframe, tell the host page how tall the game is so the frame can fit it
-  if (window.parent !== window && window.ResizeObserver) {
-    new ResizeObserver(function () {
-      window.parent.postMessage({ batBridgeHeight: Math.ceil(document.body.getBoundingClientRect().height), batBridgeLayout: layout }, "*");
-    }).observe(document.body);
+  // On wide screens, keep the whole game inside the window (or the embed frame): the board shrinks
+  // until it and everything under it fit the height. Small changes are ignored so the board doesn't jitter.
+  var screenEl = document.querySelector(".screen");
+  function fitToWindow() {
+    var H = window.innerHeight, Wd = document.documentElement.clientWidth;
+    // Roughly how wide the board can be with the controls beside it, or under it; use whichever is bigger.
+    var sideBoard = Math.floor(Math.min(992, (H - 60) * 320 / 224, Wd - 380));
+    var belowBoard = Math.min(992, (H - 300) * 320 / 224, Wd - 48);
+    var side = layout === "landscape" && sideBoard > belowBoard * 1.1;
+    gameEl.classList.toggle("side", side);
+    screenEl.style.width = side ? sideBoard + "px" : "";
+    if (layout !== "landscape" || side) { gameEl.style.maxWidth = ""; return; }
+    for (var pass = 0; pass < 4; pass++) {
+      var below = gameEl.offsetHeight - screenEl.offsetHeight; // padding, deck, card and story
+      var sides = gameEl.offsetWidth - screenEl.offsetWidth;   // padding and frame
+      var want = Math.round(Math.max(420, Math.min(1040, (H - below) * 320 / 224 + sides)));
+      if (Math.abs(gameEl.offsetWidth - want) < 8 && gameEl.offsetHeight <= window.innerHeight) break;
+      gameEl.style.maxWidth = want + "px";
+    }
   }
+  function relayout() { applyLayout(pickLayout()); fitToWindow(); }
+  new ResizeObserver(relayout).observe(gameEl);
+  window.addEventListener("resize", relayout);
+  if (document.fonts) document.fonts.ready.then(fitToWindow);
+
 
   applyLayout(pickLayout());
   reset();
+  fitToWindow();
   // fetch the card pictures now so the first flip shows its card straight away
   COLORS.forEach(function (c) { new Image().src = c.card; }); new Image().src = "cards/badge-x2.png";
   loadArt(function () {
