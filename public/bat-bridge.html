@@ -59,7 +59,10 @@
   .game { position: relative; max-width: 1040px; margin: 0 auto; padding: 18px 20px 28px; overflow: hidden; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  .screen { position: relative; margin: var(--px); background: #9ccf6e; }
+  /* The board art is a picture; the canvas on top only draws the characters, the elf and the card effects. */
+  .screen { position: relative; margin: var(--px); background: #f2f1da center / 100% 100% no-repeat; }
+  .game[data-layout="landscape"] .screen { background-image: url("gameboard-landscape.png"); }
+  .game[data-layout="portrait"] .screen { background-image: url("gameboard-portrait.png"); }
   #board { display: block; width: 100%; height: auto; }
 
   .controls {
@@ -229,7 +232,7 @@
 
   <div class="screen px-frame">
     <canvas id="board" width="320" height="224" role="img"
-      aria-label="Pixel-art game board: a trail from the start that forks three times on its way to the Congress Avenue Bat Bridge. First fork: Barton Springs or Zilker Park. Then Mural Stop. Second fork: Circuit of The Americas or tacos and barbecue. Then shopping on South Congress. Third fork: live music downtown, or the hike-and-bike trail, where a turtle gives you a ride across Lady Bird Lake."></canvas>
+      aria-label="Game board: a trail from the start that forks three times on its way to the Congress Avenue Bat Bridge. First fork: Barton Springs or Zilker Park. Then Mural Stop. Second fork: Circuit of The Americas or tacos and barbecue. Then shopping on South Congress. Third fork: live music downtown, or the hike-and-bike trail, where a turtle gives you a ride across Lady Bird Lake."></canvas>
     <div class="win" id="win" aria-live="polite">
       <div class="win-box px-frame">
         <canvas data-sprite="bat_a" data-scale="4" aria-hidden="true"></canvas>
@@ -594,33 +597,16 @@
        "..kkkkk.."]]
   };
 
-  // Tiny 3x5 bitmap font for the signs on the board (M and W are 5 wide).
-  var FONT = {
-    A:[".#.","#.#","###","#.#","#.#"], B:["##.","#.#","##.","#.#","##."], C:[".##","#..","#..","#..",".##"],
-    D:["##.","#.#","#.#","#.#","##."], E:["###","#..","##.","#..","###"], F:["###","#..","##.","#..","#.."],
-    G:[".##","#..","#.#","#.#",".##"], H:["#.#","#.#","###","#.#","#.#"], I:["###",".#.",".#.",".#.","###"],
-    J:["..#","..#","..#","#.#",".#."], K:["#.#","#.#","##.","#.#","#.#"], L:["#..","#..","#..","#..","###"],
-    M:["#...#","##.##","#.#.#","#...#","#...#"], N:["#..#","##.#","#.##","#..#","#..#"],
-    O:[".#.","#.#","#.#","#.#",".#."], P:["##.","#.#","##.","#..","#.."], Q:[".#.","#.#","#.#","##.",".##"],
-    R:["##.","#.#","##.","#.#","#.#"], S:[".##","#..",".#.","..#","##."], T:["###",".#.",".#.",".#.",".#."],
-    U:["#.#","#.#","#.#","#.#","###"], V:["#.#","#.#","#.#","#.#",".#."], W:["#...#","#...#","#.#.#","##.##","#...#"],
-    X:["#.#","#.#",".#.","#.#","#.#"], Y:["#.#","#.#",".#.",".#.",".#."], Z:["###","..#",".#.","#..","###"],
-    "0":["###","#.#","#.#","#.#","###"], "1":[".#.","##.",".#.",".#.","###"], "2":["##.","..#",".#.","#..","###"],
-    "3":["##.","..#",".#.","..#","##."], "4":["#.#","#.#","###","..#","..#"], "5":["###","#..","##.","..#","##."],
-    "6":[".##","#..","###","#.#","###"], "7":["###","..#",".#.",".#.",".#."], "8":["###","#.#","###","#.#","###"],
-    "9":["###","#.#","###","..#","##."], "&":[".#..","#.#.",".#..","#.##",".##."], " ":["..","..","..","..",".."],
-    "!":["#","#","#",".","#"], "-":["...","...","###","...","..."]
-  };
-
   // =====================================================================
   //  Game setup (edit names, tidbits and colors here)
   // =====================================================================
   var COLORS = [
-    { name: "Bluebonnet",   hex: "#3f5fc8", dark: "#2b438f", icon: "bluebonnet" },
-    { name: "Prickly pear", hex: "#d63c78", dark: "#9c2656", icon: "pricklypear" },
-    { name: "Sunset",       hex: "#ef8a2b", dark: "#b8611a", icon: "sparkle_orange" },
-    { name: "Live oak",     hex: "#3f8f4e", dark: "#2a6536", icon: "boot" },
-    { name: "Sunshine",     hex: "#e2ad1f", dark: "#a87d10", icon: "note" }
+    // `hex` matches the spaces on the board art; `ink` is the card's text color.
+    { name: "Bluebonnet",   hex: "#4275b9", ink: "#ffffff", icon: "bluebonnet" },
+    { name: "Sunset",       hex: "#f58b85", ink: "#2c2347", icon: "sparkle_pink" },
+    { name: "Clay",         hex: "#ac5844", ink: "#ffffff", icon: "boot" },
+    { name: "Agave",        hex: "#47765a", ink: "#ffffff", icon: "pricklypear" },
+    { name: "Lake",         hex: "#04b3c6", ink: "#2c2347", icon: "ico_ring" }
   ];
 
   // The deck: three single cards and one double card of each color, shuffled fresh every game.
@@ -770,11 +756,13 @@
     ["landing", "bridge", { c: 1 }]
   ];
   // Two boards lay out the same trail: landscape for wide screens, portrait for phones.
-  // `nodes` are positions, `ways` are bends in the trail between two nodes,
-  // `signs` place each landmark's label and `friends` its character, both relative to the landmark.
+  // `nodes` are positions, `ways` are bends in the trail between two nodes. Together they set where every
+  // space lands, and the board art (gameboard-landscape.png / gameboard-portrait.png, drawn at 6x) matches
+  // them exactly, so change these only together with the art.
+  // `friends` place each landmark's character, relative to the landmark.
   var BOARDS = {
     landscape: {
-      W: 320, H: 224, lake: { x: 92, y: 92, rx: 50, ry: 16 },
+      W: 320, H: 224,
       nodes: { start: [18, 196], s1: [48, 190], barton: [92, 142], zilker: [104, 204], murals: [168, 190], s2: [196, 178],
                cota: [222, 134], tacos: [262, 200], soco: [292, 126], s3: [262, 90], music: [222, 34], turtle: [152, 100],
                landing: [30, 104], bridge: [30, 30] },
@@ -782,26 +770,21 @@
               "s2>cota": [[200, 152]], "s2>tacos": [[228, 206]], "cota>soco": [[258, 114]], "tacos>soco": [[304, 174]],
               "soco>s3": [[290, 98]], "s3>music": [[256, 52]], "s3>turtle": [[206, 110]], "music>bridge": [[160, 22], [96, 40]],
               "turtle>landing": [[92, 88]], "landing>bridge": [[18, 68]] },
-      labels: { cota: "COTA RACETRACK" }, // the full name is too long for this board
-      signs: { start: [0, 13], barton: [-6, -23], zilker: [0, -24], murals: [0, 13], tacos: [0, 13], cota: [-48, -4],
-               soco: [-30, 15], music: [-4, 14], turtle: [8, 20], bridge: [4, -24] },
-      friends: { barton: [32, 2], murals: [112, -14], music: [0, 44], turtle: [-22, 6], bridge: [34, 36] }
+      friends: { barton: [32, 2], murals: [112, -14], music: [0, 44], turtle: [-32, 6], bridge: [34, 36] }
     },
     // The elf starts at the bottom and winds up the board to Bat Bridge at the top.
     portrait: {
-      W: 240, H: 344, lake: { x: 166, y: 100, rx: 46, ry: 14 },
+      W: 240, H: 344,
       nodes: { start: [22, 326], s1: [52, 322], barton: [86, 284], zilker: [150, 326], murals: [212, 296], s2: [212, 256],
                cota: [132, 190], tacos: [120, 240], soco: [28, 216], s3: [30, 172], music: [30, 92], turtle: [114, 128],
                landing: [218, 70], bridge: [206, 26] },
       ways: { "s1>barton": [[56, 298]], "s1>zilker": [[100, 332]], "barton>murals": [[150, 280]], "zilker>murals": [[190, 326]],
               "s2>cota": [[208, 204]], "s2>tacos": [[170, 250]], "cota>soco": [[74, 186]], "tacos>soco": [[70, 246]],
               "s3>music": [[18, 132]], "s3>turtle": [[70, 162]], "music>bridge": [[38, 42], [110, 22]], "turtle>landing": [[166, 76]] },
-      signs: { start: [0, -24], barton: [18, -24], zilker: [0, -24], murals: [-38, -34], tacos: [20, -24], cota: [0, -24],
-               soco: [54, -2], music: [42, -4], turtle: [54, 2], bridge: [-34, 18] },
-      friends: { barton: [-28, -8], murals: [12, 44], music: [44, -12], turtle: [-4, -12], bridge: [-94, 34] }
+      friends: { barton: [-28, -8], murals: [12, 44], music: [44, -12], turtle: [-4, -12], bridge: [-114, 34] }
     }
   };
-  var shape, W, H, NODES, LAKE; // the board in use, set by useBoard()
+  var shape, W, H, NODES; // the board in use, set by useBoard()
 
   // =====================================================================
   //  Saved between games on this device: recent routes, card orders and seen tidbits
@@ -875,27 +858,6 @@
     paintSpriteCanvas(cv, cv.getAttribute("data-sprite"), +cv.getAttribute("data-scale") || 3);
   });
 
-  function textWidth(str) {
-    var w = 0; for (var i = 0; i < str.length; i++) { var g = FONT[str[i]] || FONT[" "]; w += g[0].length + 1; }
-    return w - 1;
-  }
-  function drawText(ctx, str, x, y, col) {
-    ctx.fillStyle = col;
-    for (var i = 0; i < str.length; i++) {
-      var g = FONT[str[i]] || FONT[" "];
-      for (var r = 0; r < 5; r++) for (var c = 0; c < g[r].length; c++) if (g[r][c] === "#") ctx.fillRect(x + c, y + r, 1, 1);
-      x += g[0].length + 1;
-    }
-  }
-  // A little wooden sign with a pixel label; returns the box it covers
-  function drawSign(ctx, str, cx, y) {
-    var w = textWidth(str) + 6, x = Math.round(cx - w / 2);
-    ctx.fillStyle = "#2c2347"; ctx.fillRect(x, y + 1, w, 7); ctx.fillRect(x + 1, y, w - 2, 9);
-    ctx.fillStyle = "#fff6dc"; ctx.fillRect(x + 1, y + 1, w - 2, 7);
-    ctx.fillStyle = "#e8d3a6"; ctx.fillRect(x + 1, y + 7, w - 2, 1);
-    drawText(ctx, str, x + 3, y + 2, "#2c2347");
-    return { x: x, y: y, w: w, h: 9 };
-  }
   function disc(ctx, cx, cy, r, col) {
     ctx.fillStyle = col;
     for (var y = -r; y <= r; y++) {
@@ -903,13 +865,7 @@
       ctx.fillRect(Math.round(cx) - half, Math.round(cy) + y, half * 2 + 1, 1);
     }
   }
-  function ellipse(ctx, cx, cy, rx, ry, col) {
-    ctx.fillStyle = col;
-    for (var y = -ry; y <= ry; y++) {
-      var half = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry + ry * 0.6))));
-      ctx.fillRect(Math.round(cx) - half, Math.round(cy) + y, half * 2 + 1, 1);
-    }
-  }
+
 
   // =====================================================================
   //  Build the trail graph
@@ -1054,24 +1010,6 @@
     return best;
   }
 
-  // =====================================================================
-  //  Static background, painted once
-  // =====================================================================
-  var bgCanvas = document.createElement("canvas");
-  var bg = bgCanvas.getContext("2d");
-  var taken = []; // boxes already covered by signs, badges and friends
-
-  function rand(seed) { return function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
-  function nearTrail(x, y, dist) {
-    for (var i = 0; i < trail.length; i += 3) if (Math.abs(trail[i].x - x) < dist && Math.abs(trail[i].y - y) < dist && Math.hypot(trail[i].x - x, trail[i].y - y) < dist) return true;
-    return false;
-  }
-  function inLake(x, y, pad) { var dx = (x - LAKE.x) / (LAKE.rx + pad), dy = (y - LAKE.y) / (LAKE.ry + pad); return dx * dx + dy * dy < 1; }
-  function overlaps(b, pad) {
-    return taken.some(function (t) { return b.x < t.x + t.w + pad && t.x < b.x + b.w + pad && b.y < t.y + t.h + pad && t.y < b.y + b.h + pad; });
-  }
-
-  // Where each friend stands (bottom-centre of the sprite)
   var FRIENDS = {};
   function placeFriends() {
     FRIENDS = {};
@@ -1080,83 +1018,6 @@
       var x = NODES[k].x + shape.friends[k][0], y = NODES[k].y + shape.friends[k][1];
       FRIENDS[f.name] = { x: x, y: y, homeX: x, homeY: y, flip: false, hop: 0 };
     });
-  }
-
-  function paintBackground() {
-    // grass with a dithered texture
-    bg.fillStyle = "#9ccf6e"; bg.fillRect(0, 0, W, H);
-    var r = rand(7);
-    for (var n = 0; n < 1000; n++) {
-      var x = Math.floor(r() * W), y = Math.floor(r() * H);
-      bg.fillStyle = r() < 0.6 ? "#88bd5c" : "#b3dc86"; bg.fillRect(x, y, 1, 1);
-    }
-
-    // Lady Bird Lake
-    ellipse(bg, LAKE.x, LAKE.y, LAKE.rx + 2, LAKE.ry + 2, "#2c2347");
-    ellipse(bg, LAKE.x, LAKE.y, LAKE.rx + 1, LAKE.ry + 1, "#a7dff0");
-    ellipse(bg, LAKE.x, LAKE.y, LAKE.rx, LAKE.ry, "#5fb6d9");
-    ellipse(bg, LAKE.x + 3, LAKE.y + 3, LAKE.rx - 8, LAKE.ry - 6, "#4ea6cb");
-
-    // trail: outline, then sand, then a light center stripe
-    var i;
-    for (i = 0; i < trail.length; i += 2) disc(bg, trail[i].x, trail[i].y, 9, "#2c2347");
-    for (i = 0; i < trail.length; i += 2) disc(bg, trail[i].x, trail[i].y + 1, 8, "#d9b57a");
-    for (i = 0; i < trail.length; i += 2) disc(bg, trail[i].x, trail[i].y, 8, "#f6e3b4");
-    for (i = 0; i < trail.length; i += 9) { bg.fillStyle = "#e3c88f"; bg.fillRect(Math.round(trail[i].x + (i % 5) - 2), Math.round(trail[i].y + (i % 7) - 3), 1, 1); }
-
-    // turtle ride: a dotted line over the water
-    Object.keys(rides).forEach(function (k) {
-      var pts = rides[k].pts;
-      for (var q = 16; q < pts.length - 16; q += 5) { bg.fillStyle = "#ffffff"; bg.fillRect(Math.round(pts[q].x), Math.round(pts[q].y), 2, 2); }
-    });
-    var lakeSign = drawSign(bg, "LADY BIRD LAKE", LAKE.x - 4, LAKE.y + 1); taken.push(lakeSign);
-
-    // plain spaces
-    Object.keys(spaces).forEach(function (id) {
-      var P = spaces[id]; if (P.stop) return;
-      var rr = 6, c = COLORS[P.color];
-      disc(bg, P.x, P.y + 2, rr + 1, "#c9a463");
-      disc(bg, P.x, P.y, rr + 1, "#2c2347");
-      disc(bg, P.x, P.y, rr, c.dark);
-      disc(bg, P.x, P.y - 1, rr - 1, c.hex);
-      bg.fillStyle = "rgba(255,255,255,.85)";
-      bg.fillRect(P.x - rr + 3, P.y - rr + 2, 2, 1); bg.fillRect(P.x - rr + 2, P.y - rr + 3, 1, 2);
-    });
-
-    // landmark badges, right on the trail
-    Object.keys(STOPS).forEach(function (k) {
-      var s = STOPS[k], P = NODES[k];
-      disc(bg, P.x, P.y + 2, BADGE_R + 2, "rgba(44,35,71,.35)");
-      disc(bg, P.x, P.y, BADGE_R + 2, "#2c2347");
-      disc(bg, P.x, P.y, BADGE_R + 1, "#ffffff");
-      disc(bg, P.x, P.y, BADGE_R - 1, s.disc);
-      var sz = spriteSize(s.icon);
-      blit(bg, s.icon, P.x - Math.floor(sz.w / 2), P.y - Math.floor(sz.h / 2), { pal: s.iconPal });
-      taken.push({ x: P.x - BADGE_R - 2, y: P.y - BADGE_R - 2, w: BADGE_R * 2 + 4, h: BADGE_R * 2 + 4 });
-      taken.push(drawSign(bg, (shape.labels && shape.labels[k]) || s.label, P.x + shape.signs[k][0], P.y + shape.signs[k][1]));
-      if (s.friend) {
-        var f = FRIENDS[s.friend.name], fs = spriteSize(s.friend.name === "bat" ? "bat_a" : s.friend.name);
-        taken.push({ x: f.x - fs.w / 2, y: f.y - fs.h - 8, w: fs.w, h: fs.h + 10 });
-      }
-    });
-
-    // scatter Texas doodles in the open grass
-    var doodles = ["bluebonnet", "sparkle", "bluebonnet", "pricklypear", "sparkle_pink", "boot", "note", "bluebonnet", "pricklypear", "sparkle"];
-    var placed = 0;
-    for (var tries = 0; tries < 2500 && placed < 30; tries++) {
-      var name = doodles[tries % doodles.length], sz = spriteSize(name);
-      var dx = Math.floor(r() * (W - sz.w)), dy = Math.floor(r() * (H - sz.h));
-      var box = { x: dx, y: dy, w: sz.w, h: sz.h };
-      if (nearTrail(dx + sz.w / 2, dy + sz.h / 2, 10 + Math.max(sz.w, sz.h) / 2) || inLake(dx + sz.w / 2, dy + sz.h / 2, 10) || overlaps(box, 3)) continue;
-      blit(bg, name, dx, dy); taken.push(box); placed++;
-    }
-    // grass tufts
-    for (var t = 0; t < 90; t++) {
-      var gx = Math.floor(r() * (W - 6)), gy = Math.floor(r() * (H - 4)) + 2;
-      if (nearTrail(gx, gy, 14) || inLake(gx, gy, 6) || overlaps({ x: gx, y: gy - 1, w: 5, h: 3 }, 1)) continue;
-      bg.fillStyle = "#6fa54a";
-      bg.fillRect(gx, gy, 1, 2); bg.fillRect(gx + 2, gy - 1, 1, 3); bg.fillRect(gx + 4, gy, 1, 2);
-    }
   }
 
   // =====================================================================
@@ -1190,15 +1051,7 @@
   }
 
   function render() {
-    ctx.drawImage(bgCanvas, 0, 0);
-    // water sparkles
-    for (var s = 0; s < 4; s++) {
-      var ph = (tick + s * 17) % 48;
-      if (ph < 24) {
-        var sx = LAKE.x - 36 + ((s * 23) % 70), sy = LAKE.y - 2 + ((s * 7) % 10);
-        ctx.fillStyle = "#e8f8ff"; ctx.fillRect(sx + (ph >> 3), sy, 3, 1);
-      }
-    }
+    ctx.clearRect(0, 0, W, H);
     Object.keys(FRIENDS).forEach(function (n) { drawFriend(n, tick); });
 
     drawCardFx(performance.now());
@@ -1227,10 +1080,10 @@
   // =====================================================================
   var CARD_FX = [
     { kind: "rise",   sprites: ["bluebonnet"] },                  // Bluebonnet: a field of flowers floats up
-    { kind: "pop",    sprites: ["sparkle_pink", "pricklypear"] }, // Prickly pear: pink blooms pop all over
-    { kind: "streak", sprites: ["sparkle_orange"] },              // Sunset: shooting sparkles streak across
-    { kind: "breeze", sprites: ["leaf"] },                        // Live oak: leaves blow by on the wind
-    { kind: "dance",  sprites: ["note", "sparkle"] }              // Sunshine: music notes bounce across
+    { kind: "pop",    sprites: ["sparkle_pink"] },                // Sunset: pink sparkles pop all over
+    { kind: "streak", sprites: ["sparkle_orange"] },              // Clay: shooting sparkles streak across
+    { kind: "breeze", sprites: ["leaf"] },                        // Agave: leaves blow by on the wind
+    { kind: "dance",  sprites: ["note", "sparkle"] }              // Lake: music notes bounce across
   ];
   var FX_MS = 1500, cardFx = null;
 
@@ -1347,7 +1200,7 @@
     drawnBox.innerHTML = "";
     var face = document.createElement("div");
     face.className = "card face px-frame flip" + (card.steps > 1 ? " double" : "");
-    face.style.background = c.hex;
+    face.style.backgroundColor = c.hex; face.style.color = c.ink;
     var gem = document.createElement("span"); gem.className = "gem px-frame";
     var cv = document.createElement("canvas"); paintSpriteCanvas(cv, c.icon, 4);
     gem.appendChild(cv);
@@ -1523,10 +1376,9 @@
     }
   }
   function useBoard(name) {
-    shape = BOARDS[name]; W = shape.W; H = shape.H; LAKE = shape.lake; NODES = {};
+    shape = BOARDS[name]; W = shape.W; H = shape.H; NODES = {};
     Object.keys(shape.nodes).forEach(function (id) { NODES[id] = { x: shape.nodes[id][0], y: shape.nodes[id][1] }; });
     buildTrail(); placeFriends();
-    bgCanvas.width = W; bgCanvas.height = H; taken = []; paintBackground();
     board.width = W; board.height = H; ctx.imageSmoothingEnabled = false;
   }
   // The same spot on the other board: landmarks match exactly; a plain space keeps its place along its stretch of trail.
