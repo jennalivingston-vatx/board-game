@@ -77,22 +77,12 @@
     appearance: none; border: 0; padding: 0; background: none; cursor: pointer;
     font: inherit; color: inherit; display: grid; justify-items: center; gap: 10px;
   }
-  .card {
-    width: 88px; height: 120px; margin: var(--px);
-    display: grid; place-items: center; align-content: center; gap: 6px;
-  }
-  .card-back {
-    background:
-      repeating-linear-gradient(0deg, transparent 0 8px, rgba(255,255,255,.07) 8px 12px),
-      var(--night);
-    --frame: #f3c33b;
-    position: relative;
-  }
+  /* Cards are pictures (public/cards); every card image is 3x this size. */
+  .card { display: block; width: 94px; height: 128px; }
   .deck-stack { position: relative; transition: transform .12s steps(2); }
   .deck-stack::before {
-    content: ""; position: absolute; inset: var(--px);
-    transform: translate(8px, 8px); background: #4e3a80;
-    box-shadow: 0 0 0 var(--px) #2c2347;
+    content: ""; position: absolute; inset: 0; border-radius: 9px;
+    transform: translate(6px, 6px); background: url("cards/card-back.png") center / 100% 100%; filter: brightness(.6);
   }
   .deck:hover .deck-stack { transform: translateY(-4px); }
   .deck-label {
@@ -107,20 +97,8 @@
   .deck[disabled] .deck-stack { transform: none; }
 
   .drawn { width: 96px; height: 128px; display: grid; place-items: center; }
-  .slot {
-    width: 88px; height: 120px; margin: var(--px);
-    background: var(--slot); color: var(--ink-soft);
-    display: grid; place-items: center; text-align: center; font-size: .9rem; padding: 8px;
-    --frame: var(--ink-soft);
-  }
-  .face { color: #fff; font-weight: 600; font-size: .98rem; text-align: center; --frame: #2c2347; position: relative; line-height: 1.1; }
-  .face .gem { background: #fffaf0; width: 56px; height: 56px; display: grid; place-items: center; --frame: #2c2347; margin: var(--px); }
-  .face .gem canvas { width: 44px; height: auto; }
-  .face .times {
-    position: absolute; top: 4px; right: 4px; background: #fff36b; color: #2c2347;
-    font-size: .85rem; padding: 0 4px; --frame: #2c2347; --px: 2px;
-  }
-  .face.double { background-image: repeating-linear-gradient(45deg, transparent 0 6px, rgba(255,255,255,.18) 6px 10px); }
+  .face { position: relative; }
+  .face .badge { position: absolute; top: 6px; right: 6px; width: 26px; height: auto; }
   .flip { animation: flip .36s steps(4); }
   @keyframes flip { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
 
@@ -178,11 +156,8 @@
     display: flex; align-items: center; gap: 10px; height: var(--bar-h);
     padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
   }
-  .mini .card, .mini .slot { width: 38px; height: 52px; margin: var(--px); padding: 0; }
-  .mini .face { font-size: 0; gap: 0; }
-  .mini .face .gem { width: 26px; height: 26px; margin: 0; }
-  .mini .face .gem canvas { width: 20px; }
-  .mini .face .times { font-size: .6rem; top: -6px; right: -8px; }
+  .mini .card { width: 44px; height: 60px; margin: var(--px); }
+  .mini .face .badge { top: -6px; right: -10px; width: 22px; }
   .latest {
     flex: 1; min-width: 0; margin: var(--px); padding: 8px 10px; cursor: pointer;
     appearance: none; border: 0; font: inherit; font-size: .85rem; text-align: left;
@@ -247,7 +222,7 @@
 
   <!-- Phones only: your card, the latest news and the flip button, under the board -->
   <div class="bar">
-    <div class="mini" id="mini" aria-hidden="true"><div class="slot px-frame"></div></div>
+    <div class="mini" id="mini" aria-hidden="true"><img class="card" src="cards/card-slot.png" alt=""></div>
     <button class="latest px-frame" id="latest" aria-label="Show what happened"></button>
     <button class="flip-btn px-frame" id="flip">Flip a card</button>
   </div>
@@ -256,14 +231,14 @@
   <div class="controls" id="panel">
     <button class="deck" id="deck" aria-describedby="story-title">
       <span class="deck-stack" aria-hidden="true">
-        <span class="card card-back px-frame"><canvas data-sprite="bat_a" data-scale="3" style="width:60px"></canvas></span>
+        <img class="card" src="cards/card-back.png" alt="">
       </span>
       <span class="deck-label px-frame">Flip a card</span>
       <span class="deck-count" id="deck-count"></span>
     </button>
 
     <div class="drawn" id="drawn" aria-live="polite">
-      <div class="slot px-frame">Your card shows here</div>
+      <img class="card" src="cards/card-slot.png" alt="Your card shows here">
     </div>
 
     <div class="story px-frame" id="story" aria-live="polite">
@@ -601,12 +576,12 @@
   //  Game setup (edit names, tidbits and colors here)
   // =====================================================================
   var COLORS = [
-    // `hex` matches the spaces on the board art; `ink` is the card's text color.
-    { name: "Bluebonnet",   hex: "#4275b9", ink: "#ffffff", icon: "bluebonnet" },
-    { name: "Sunset",       hex: "#f58b85", ink: "#2c2347", icon: "sparkle_pink" },
-    { name: "Clay",         hex: "#ac5844", ink: "#ffffff", icon: "boot" },
-    { name: "Agave",        hex: "#47765a", ink: "#ffffff", icon: "pricklypear" },
-    { name: "Lake",         hex: "#04b3c6", ink: "#2c2347", icon: "ico_ring" }
+    // `hex` matches the spaces on the board art; `card` is the card picture; `icon` is in ART below.
+    { name: "Bluebonnet", hex: "#4275b9", card: "cards/card-bluebonnet.png", icon: "icon_bluebonnet" },
+    { name: "Sunset",     hex: "#f58b85", card: "cards/card-sunset.png",     icon: "icon_sunset" },
+    { name: "Clay",       hex: "#ac5844", card: "cards/card-clay.png",       icon: "icon_clay" },
+    { name: "Agave",      hex: "#47765a", card: "cards/card-agave.png",      icon: "icon_agave" },
+    { name: "Lake",       hex: "#04b3c6", card: "cards/card-lake.png",       icon: "icon_lake" }
   ];
 
   // The deck: three single cards and one double card of each color, shuffled fresh every game.
@@ -822,8 +797,16 @@
     longhorn:   { src: "characters/lou-longhorn.png", h: 24 },
     salamander: { src: "characters/sal-salamander.png", h: 24 },
     turtle:     { src: "characters/shelley-turtle.png", h: 13, facesLeft: true },
-    token:      { src: "characters/elf.png", h: 18 }
+    token:      { src: "characters/elf.png", h: 18 },
+    // card icons; `fallback` is the pixel sprite to use if the picture can't load
+    icon_bluebonnet: { src: "cards/icon-bluebonnet.png", h: 8, fallback: "bluebonnet" },
+    icon_sunset:     { src: "cards/icon-sunset.png", h: 8, fallback: "sparkle_pink" },
+    icon_clay:       { src: "cards/icon-clay.png", h: 8, fallback: "boot" },
+    icon_agave:      { src: "cards/icon-agave.png", h: 8, fallback: "pricklypear" },
+    icon_lake:       { src: "cards/icon-lake.png", h: 8, fallback: "ico_ring" }
   };
+  // The name to draw with: the picture when it has loaded, otherwise a pixel sprite.
+  function drawable(name) { return artReady(name) || SPRITES[name] ? name : ART[name].fallback; }
   function artReady(name) { var a = ART[name]; return !!(a && a.img && a.img.complete && a.img.naturalWidth); }
   function loadArt(done) {
     var names = Object.keys(ART), left = names.length, finished = false;
@@ -841,6 +824,7 @@
   // =====================================================================
   var spriteCache = {};
   function spriteSize(name) {
+    name = drawable(name);
     if (artReady(name)) { var a = ART[name]; return { w: a.h * a.img.naturalWidth / a.img.naturalHeight, h: a.h }; }
     var r = SPRITES[name][1]; return { w: Math.max.apply(null, r.map(function (s) { return s.length; })), h: r.length }; }
   function bakeSprite(name, palOverride, flip) {
@@ -873,7 +857,7 @@
   }
   // `opts.flip` means "face left"; `opts.scale` shrinks or grows character art.
   function blit(ctx, name, x, y, opts) {
-    opts = opts || {};
+    opts = opts || {}; name = drawable(name);
     if (artReady(name)) {
       var a = ART[name], h = a.h * (opts.scale || 1), w = h * a.img.naturalWidth / a.img.naturalHeight;
       var mirror = a.facesLeft ? !opts.flip : !!opts.flip;
@@ -886,6 +870,7 @@
   }
   // Fill a <canvas data-sprite> element in the page at an integer scale
   function paintSpriteCanvas(cv, name, scale, pal) {
+    name = drawable(name);
     if (artReady(name)) {
       var img = ART[name].img; cv.width = img.naturalWidth; cv.height = img.naturalHeight;
       var g = cv.getContext("2d"); g.clearRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0); return;
@@ -1123,11 +1108,11 @@
   //  (index matches COLORS; a double card sends twice as many)
   // =====================================================================
   var CARD_FX = [
-    { kind: "rise",   sprites: ["bluebonnet"] },                  // Bluebonnet: a field of flowers floats up
-    { kind: "pop",    sprites: ["sparkle_pink"] },                // Sunset: pink sparkles pop all over
-    { kind: "streak", sprites: ["sparkle_orange"] },              // Clay: shooting sparkles streak across
-    { kind: "breeze", sprites: ["leaf"] },                        // Agave: leaves blow by on the wind
-    { kind: "dance",  sprites: ["note", "sparkle"] }              // Lake: music notes bounce across
+    { kind: "rise",   sprites: ["icon_bluebonnet"] }, // Bluebonnet: a field of flowers floats up
+    { kind: "pop",    sprites: ["icon_sunset"] },     // Sunset: little suns pop all over
+    { kind: "streak", sprites: ["icon_clay"] },       // Clay: bricks streak across
+    { kind: "breeze", sprites: ["icon_agave"] },      // Agave: agaves blow by on the wind
+    { kind: "dance",  sprites: ["icon_lake"] }        // Lake: little lakes bounce across
   ];
   var FX_MS = 1500, cardFx = null;
 
@@ -1168,7 +1153,8 @@
         default:       x = -14 + u * (W + 28); y = 30 + p.row * (H - 40) / 4 - Math.abs(Math.sin(u * 14 + p.ph)) * 14;
       }
       if (!scale) return;
-      ctx.drawImage(bakeSprite(p.sprite), Math.round(x - sz.w * scale / 2), Math.round(y - sz.h * scale / 2), sz.w * scale, sz.h * scale);
+      if (artReady(p.sprite)) blit(ctx, p.sprite, x - sz.w * scale / 2, y - sz.h * scale / 2, { scale: scale });
+      else ctx.drawImage(bakeSprite(drawable(p.sprite)), Math.round(x - sz.w * scale / 2), Math.round(y - sz.h * scale / 2), sz.w * scale, sz.h * scale);
     });
   }
 
@@ -1240,23 +1226,17 @@
   }
 
   function showCard(card) {
-    var c = COLORS[card.color];
-    drawnBox.innerHTML = "";
-    var face = document.createElement("div");
-    face.className = "card face px-frame flip" + (card.steps > 1 ? " double" : "");
-    face.style.backgroundColor = c.hex; face.style.color = c.ink;
-    var gem = document.createElement("span"); gem.className = "gem px-frame";
-    var cv = document.createElement("canvas"); paintSpriteCanvas(cv, c.icon, 4);
-    gem.appendChild(cv);
-    var label = document.createElement("span"); label.textContent = card.steps > 1 ? "Double " + c.name.toLowerCase() : c.name;
-    face.appendChild(gem); face.appendChild(label);
-    if (card.steps > 1) { var t = document.createElement("span"); t.className = "times px-frame"; t.textContent = "×2"; face.appendChild(t); }
-    drawnBox.appendChild(face);
+    var c = COLORS[card.color], name = card.steps > 1 ? "Double " + c.name.toLowerCase() : c.name;
+    var face = document.createElement("div"); face.className = "card face flip";
+    var img = document.createElement("img"); img.className = "card"; img.src = c.card; img.alt = name;
+    face.appendChild(img);
+    if (card.steps > 1) { var b = document.createElement("img"); b.className = "badge"; b.src = "cards/badge-x2.png"; b.alt = ""; face.appendChild(b); }
+    drawnBox.innerHTML = ""; drawnBox.appendChild(face);
     miniBox.innerHTML = ""; miniBox.appendChild(face.cloneNode(true));
   }
   function showSlot() {
-    drawnBox.innerHTML = '<div class="slot px-frame">Your card shows here</div>';
-    miniBox.innerHTML = '<div class="slot px-frame"></div>';
+    drawnBox.innerHTML = '<img class="card" src="cards/card-slot.png" alt="Your card shows here">';
+    miniBox.innerHTML = '<img class="card" src="cards/card-slot.png" alt="">';
   }
 
   function placeToken(id) { token.x = spaces[id].x; token.y = spaces[id].y + 2; token.lift = 0; }
@@ -1448,6 +1428,8 @@
 
   applyLayout(pickLayout());
   reset();
+  // fetch the card pictures now so the first flip shows its card straight away
+  COLORS.forEach(function (c) { new Image().src = c.card; }); new Image().src = "cards/badge-x2.png";
   loadArt(function () {
     paintPageSprites(); paintSpriteCanvas(storyCanvas, "bat_a"); // the welcome art
     render();
