@@ -803,7 +803,20 @@
     icon_sunset:     { src: "cards/icon-sunset.png", h: 8, fallback: "sparkle_pink" },
     icon_clay:       { src: "cards/icon-clay.png", h: 8, fallback: "boot" },
     icon_agave:      { src: "cards/icon-agave.png", h: 8, fallback: "pricklypear" },
-    icon_lake:       { src: "cards/icon-lake.png", h: 8, fallback: "ico_ring" }
+    icon_lake:       { src: "cards/icon-lake.png", h: 8, fallback: "ico_ring" },
+    // pictures for the landmarks without a character, shown in the story panel
+    ico_kite:     { src: "landmarks/zilker-kite.png", h: 24 },
+    ico_flag:     { src: "landmarks/cota-flag.png", h: 24 },
+    ico_taco:     { src: "landmarks/tacos-bbq.png", h: 24 },
+    ico_shopping: { src: "landmarks/soco-shopping-bags.png", h: 24 },
+    // the little pictures that fly across the board when a card is flipped
+    fx_bluebonnet:   { src: "effects/bluebonnet.png", h: 7, fallback: "bluebonnet" },
+    fx_sparkle_pink: { src: "effects/sparkle-pink.png", h: 7, fallback: "sparkle_pink" },
+    fx_sun:          { src: "effects/sun-burst.png", h: 7, fallback: "sparkle_orange" },
+    fx_brick:        { src: "effects/brick.png", h: 6, fallback: "sparkle_orange" },
+    fx_leaf:         { src: "effects/leaf.png", h: 7, fallback: "leaf" },
+    fx_drop:         { src: "effects/water-drop.png", h: 7, fallback: "sparkle" },
+    fx_note:         { src: "effects/music-note.png", h: 7, fallback: "note" }
   };
   // The name to draw with: the picture when it has loaded, otherwise a pixel sprite.
   function drawable(name) { return artReady(name) || SPRITES[name] ? name : ART[name].fallback; }
@@ -1108,11 +1121,11 @@
   //  (index matches COLORS; a double card sends twice as many)
   // =====================================================================
   var CARD_FX = [
-    { kind: "rise",   sprites: ["icon_bluebonnet"] }, // Bluebonnet: a field of flowers floats up
-    { kind: "pop",    sprites: ["icon_sunset"] },     // Sunset: little suns pop all over
-    { kind: "streak", sprites: ["icon_clay"] },       // Clay: bricks streak across
-    { kind: "breeze", sprites: ["icon_agave"] },      // Agave: agaves blow by on the wind
-    { kind: "dance",  sprites: ["icon_lake"] }        // Lake: little lakes bounce across
+    { kind: "rise",   sprites: ["fx_bluebonnet"] },            // Bluebonnet: a field of flowers floats up
+    { kind: "pop",    sprites: ["fx_sparkle_pink", "fx_sun"] }, // Sunset: sparkles and suns pop all over
+    { kind: "streak", sprites: ["fx_brick"] },                 // Clay: bricks streak across
+    { kind: "breeze", sprites: ["fx_leaf"] },                  // Agave: leaves blow by on the wind
+    { kind: "dance",  sprites: ["fx_drop", "fx_note"] }        // Lake: water drops and music notes bounce across
   ];
   var FX_MS = 1500, cardFx = null;
 
