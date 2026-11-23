@@ -46,14 +46,8 @@
   }
   canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 
-  /* Stepped "pixel" frame: a 1-step notch at each corner */
-  .px-frame {
-    box-shadow:
-      0 calc(-1 * var(--px)) 0 0 var(--frame, #2c2347),
-      0 var(--px) 0 0 var(--frame, #2c2347),
-      calc(-1 * var(--px)) 0 0 0 var(--frame, #2c2347),
-      var(--px) 0 0 0 var(--frame, #2c2347);
-  }
+  /* A solid frame all the way around, corners included */
+  .px-frame { box-shadow: 0 0 0 var(--px) var(--frame, #2c2347); }
 
   /* Wide screens: the landscape board with the deck, card and story underneath */
   .game { position: relative; max-width: 1040px; margin: 0 auto; padding: 18px 20px 28px; overflow: hidden; }
