@@ -785,6 +785,7 @@
     }
   };
   var shape, W, H, NODES; // the board in use, set by useBoard()
+  var BOARD_SCALE = 6;
 
   // =====================================================================
   //  Saved between games on this device: recent routes, card orders and seen tidbits
@@ -810,10 +811,38 @@
   }
 
   // =====================================================================
+  //  Character art (public/characters). Each drawing stands in for the pixel sprite of the same name.
+  //  `h` is its height on the board, in board units; `facesLeft` marks art drawn facing left.
+  //  If a drawing can't load, the game falls back to the pixel sprite.
+  // =====================================================================
+  var ART = {
+    bat_a:      { src: "characters/bat-wings-up.png", h: 24 },
+    bat_b:      { src: "characters/bat-wings-down.png", h: 24 },
+    armadillo:  { src: "characters/dilla-armadillo.png", h: 24 },
+    longhorn:   { src: "characters/lou-longhorn.png", h: 24 },
+    salamander: { src: "characters/sal-salamander.png", h: 24 },
+    turtle:     { src: "characters/shelley-turtle.png", h: 13, facesLeft: true },
+    token:      { src: "characters/elf.png", h: 18 }
+  };
+  function artReady(name) { var a = ART[name]; return !!(a && a.img && a.img.complete && a.img.naturalWidth); }
+  function loadArt(done) {
+    var names = Object.keys(ART), left = names.length, finished = false;
+    function finish() { if (!finished) { finished = true; done(); } }
+    names.forEach(function (n) {
+      var img = new Image();
+      img.onload = img.onerror = function () { if (--left === 0) finish(); };
+      img.src = ART[n].src; ART[n].img = img;
+    });
+    setTimeout(finish, 4000); // don't hold the game up for a slow connection
+  }
+
+  // =====================================================================
   //  Sprite rendering
   // =====================================================================
   var spriteCache = {};
-  function spriteSize(name) { var r = SPRITES[name][1]; return { w: Math.max.apply(null, r.map(function (s) { return s.length; })), h: r.length }; }
+  function spriteSize(name) {
+    if (artReady(name)) { var a = ART[name]; return { w: a.h * a.img.naturalWidth / a.img.naturalHeight, h: a.h }; }
+    var r = SPRITES[name][1]; return { w: Math.max.apply(null, r.map(function (s) { return s.length; })), h: r.length }; }
   function bakeSprite(name, palOverride, flip) {
     var key = name + "|" + JSON.stringify(palOverride || {}) + "|" + (flip ? 1 : 0);
     if (spriteCache[key]) return spriteCache[key];
@@ -842,28 +871,43 @@
     x.globalCompositeOperation = "source-over"; x.drawImage(src, 1, 1);
     spriteCache[key] = c; return c;
   }
+  // `opts.flip` means "face left"; `opts.scale` shrinks or grows character art.
   function blit(ctx, name, x, y, opts) {
     opts = opts || {};
+    if (artReady(name)) {
+      var a = ART[name], h = a.h * (opts.scale || 1), w = h * a.img.naturalWidth / a.img.naturalHeight;
+      var mirror = a.facesLeft ? !opts.flip : !!opts.flip;
+      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      if (mirror) { ctx.translate(x + w, y); ctx.scale(-1, 1); ctx.drawImage(a.img, 0, 0, w, h); }
+      else ctx.drawImage(a.img, x, y, w, h);
+      ctx.restore(); return;
+    }
     ctx.drawImage(bakeSprite(name, opts.pal, opts.flip), Math.round(x), Math.round(y));
   }
   // Fill a <canvas data-sprite> element in the page at an integer scale
   function paintSpriteCanvas(cv, name, scale, pal) {
+    if (artReady(name)) {
+      var img = ART[name].img; cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      var g = cv.getContext("2d"); g.clearRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0); return;
+    }
     var sz = spriteSize(name);
     cv.width = sz.w * scale; cv.height = sz.h * scale;
     var x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
     x.clearRect(0, 0, cv.width, cv.height);
     x.drawImage(bakeSprite(name, pal), 0, 0, cv.width, cv.height);
   }
-  document.querySelectorAll("canvas[data-sprite]").forEach(function (cv) {
-    paintSpriteCanvas(cv, cv.getAttribute("data-sprite"), +cv.getAttribute("data-scale") || 3);
-  });
+  function paintPageSprites() {
+    document.querySelectorAll("canvas[data-sprite]").forEach(function (cv) {
+      paintSpriteCanvas(cv, cv.getAttribute("data-sprite"), +cv.getAttribute("data-scale") || 3);
+    });
+  }
 
+  // A soft oval shadow on the ground at (x, y)
+  function shadow(x, y, rx, col) {
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, rx * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+  }
   function disc(ctx, cx, cy, r, col) {
-    ctx.fillStyle = col;
-    for (var y = -r; y <= r; y++) {
-      var half = Math.floor(Math.sqrt(r * r + r * 0.8 - y * y));
-      ctx.fillRect(Math.round(cx) - half, Math.round(cy) + y, half * 2 + 1, 1);
-    }
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
   }
 
 
@@ -1038,8 +1082,7 @@
     if (name === "turtle") bob = Math.floor(t / 14) % 2;
     var jump = f.hop > 0 ? Math.round(Math.sin((1 - f.hop / 12) * Math.PI) * 6) : 0;
     if (name !== "bat") {
-      ctx.fillStyle = name === "turtle" ? "rgba(255,255,255,.45)" : "rgba(44,35,71,.25)";
-      ctx.fillRect(f.x - Math.floor(sz.w / 2) + 3, f.y, sz.w - 6, 2);
+      shadow(f.x, f.y, sz.w * 0.36, name === "turtle" ? "rgba(255,255,255,.4)" : "rgba(44,35,71,.18)");
     }
     blit(ctx, sprite, f.x - Math.floor(sz.w / 2), f.y - sz.h - bob - jump, { flip: f.flip });
     if (f.hop > 0) {
@@ -1059,11 +1102,12 @@
     // player token, drawn last so nothing covers it: a soft golden glow, then the elf in a white outline
     var tz = spriteSize("token"), tx = Math.round(token.x), ty = Math.round(token.y), lift = Math.round(token.lift);
     var glow = Math.floor(tick / 8) % 2; // a slow two-step shimmer
-    disc(ctx, tx, ty - 7 - lift, 13 + glow, "rgba(255,200,40,.4)");
-    disc(ctx, tx, ty - 7 - lift, 10 + glow, "rgba(255,236,120,.65)");
-    ctx.fillStyle = "rgba(44,35,71,.35)";
-    ctx.fillRect(tx - 5, ty + 1, 10, 2);
-    ctx.drawImage(outlined("token"), tx - Math.floor(tz.w / 2) - 1, ty - tz.h - lift - 1);
+    var mid = ty - tz.h / 2 - lift, rad = tz.h * 0.62;
+    disc(ctx, tx, mid, rad + 2 + glow, "rgba(255,200,40,.4)");
+    disc(ctx, tx, mid, rad + glow, "rgba(255,236,120,.65)");
+    shadow(tx, ty, tz.w * 0.4, "rgba(44,35,71,.25)");
+    if (artReady("token")) blit(ctx, "token", tx - tz.w / 2, ty - tz.h - lift);
+    else ctx.drawImage(outlined("token"), tx - Math.floor(tz.w / 2) - 1, ty - tz.h - lift - 1);
     // a little "you are here" arrow bobbing over his hat
     var ay = ty - tz.h - lift - 9 - glow;
     ctx.fillStyle = "#2c2347"; ctx.fillRect(tx - 4, ay - 1, 9, 1);
@@ -1138,7 +1182,7 @@
       var t = winT - b.delay; if (t < 0) return;
       var y = b.y0 - t * b.vy, x = b.x0 + Math.sin(t / 9 + b.ph) * 10 + t * b.vx;
       if (y < -20) { b.delay = winT + Math.floor(Math.random() * 30); b.y0 = H + 10; return; }
-      blit(ctx, (Math.floor(t / 4) % 2) ? "bat_b" : "bat_a", x, y);
+      blit(ctx, (Math.floor(t / 4) % 2) ? "bat_b" : "bat_a", x, y, { scale: 0.4 });
     });
   }
 
@@ -1236,10 +1280,11 @@
   }
   function rideTurtle() {
     var ride = rides[pos], pts = ride.pts, f = FRIENDS.turtle;
+    var swimsLeft = pts[pts.length - 1].x < pts[0].x;
     return animate(1600, function (t) {
       var p = pts[Math.round(t * (pts.length - 1))];
       token.x = p.x; token.y = p.y - 4; token.lift = 0;
-      f.x = Math.round(p.x); f.y = Math.round(p.y) + 4; f.flip = true;
+      f.x = Math.round(p.x); f.y = Math.round(p.y) + 4; f.flip = swimsLeft;
     }).then(function () {
       pos = ride.to; return hopTo(pos);
     }).then(function () {
@@ -1379,7 +1424,9 @@
     shape = BOARDS[name]; W = shape.W; H = shape.H; NODES = {};
     Object.keys(shape.nodes).forEach(function (id) { NODES[id] = { x: shape.nodes[id][0], y: shape.nodes[id][1] }; });
     buildTrail(); placeFriends();
-    board.width = W; board.height = H; ctx.imageSmoothingEnabled = false;
+    // 6x, the same scale as the board art, so the character drawings stay sharp
+    board.width = W * BOARD_SCALE; board.height = H * BOARD_SCALE;
+    ctx.setTransform(BOARD_SCALE, 0, 0, BOARD_SCALE, 0, 0); ctx.imageSmoothingEnabled = false;
   }
   // The same spot on the other board: landmarks match exactly; a plain space keeps its place along its stretch of trail.
   function sameSpot(id, oldSpaces) {
@@ -1401,13 +1448,16 @@
 
   applyLayout(pickLayout());
   reset();
-  render();
-  if (reduceMotion) {
-    // Still animate moves, but skip idle bobbing: redraw only while something changes.
-    (function still() { render(); requestAnimationFrame(still); })();
-  } else {
-    requestAnimationFrame(frameDriver);
-  }
+  loadArt(function () {
+    paintPageSprites(); paintSpriteCanvas(storyCanvas, "bat_a"); // the welcome art
+    render();
+    if (reduceMotion) {
+      // Still animate moves, but skip idle bobbing: redraw only while something changes.
+      (function still() { render(); requestAnimationFrame(still); })();
+    } else {
+      requestAnimationFrame(frameDriver);
+    }
+  });
 })();
 </script>
 </body>
