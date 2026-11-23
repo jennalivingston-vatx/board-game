@@ -898,9 +898,6 @@
   function shadow(x, y, rx, col) {
     ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, rx * 0.22, 0, 0, Math.PI * 2); ctx.fill();
   }
-  function disc(ctx, cx, cy, r, col) {
-    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-  }
 
 
   // =====================================================================
@@ -1091,12 +1088,9 @@
 
     drawCardFx(performance.now());
 
-    // player token, drawn last so nothing covers it: a soft golden glow, then the elf in a white outline
+    // player token, drawn last so nothing covers it, with a "you are here" arrow over him
     var tz = spriteSize("token"), tx = Math.round(token.x), ty = Math.round(token.y), lift = Math.round(token.lift);
-    var glow = Math.floor(tick / 8) % 2; // a slow two-step shimmer
-    var mid = ty - tz.h / 2 - lift, rad = tz.h * 0.62;
-    disc(ctx, tx, mid, rad + 2 + glow, "rgba(255,200,40,.4)");
-    disc(ctx, tx, mid, rad + glow, "rgba(255,236,120,.65)");
+    var glow = Math.floor(tick / 8) % 2; // the arrow bobs in two slow steps
     shadow(tx, ty, tz.w * 0.4, "rgba(44,35,71,.25)");
     if (artReady("token")) blit(ctx, "token", tx - tz.w / 2, ty - tz.h - lift);
     else ctx.drawImage(outlined("token"), tx - Math.floor(tz.w / 2) - 1, ty - tz.h - lift - 1);
