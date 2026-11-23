@@ -29,13 +29,13 @@
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --page: #1b1630; --ink: #f4eefc; --ink-soft: #bdb4d6; --panel: #2a2342;
-      --panel-text: #f4eefc; --slot: #3d3460; color-scheme: dark;
+      --page: #00818d; --ink: #ffffff; --ink-soft: #ffffff; --panel: #006670;
+      --panel-text: #ffffff; --slot: #005a63; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --page: #1b1630; --ink: #f4eefc; --ink-soft: #bdb4d6; --panel: #2a2342;
-    --panel-text: #f4eefc; --slot: #3d3460; color-scheme: dark;
+    --page: #00818d; --ink: #ffffff; --ink-soft: #ffffff; --panel: #006670;
+    --panel-text: #ffffff; --slot: #005a63; color-scheme: dark;
   }
   *, *::before, *::after { box-sizing: inherit; }
   html, body { margin: 0; }
@@ -176,7 +176,7 @@
   }
   .game[data-layout="portrait"].sheet-open .controls { transform: none; visibility: visible; transition: transform .3s steps(6); }
   .game.switching .controls { transition: none !important; }
-  .game[data-layout="portrait"].sheet-open .scrim { display: block; position: absolute; inset: 0; z-index: 2; background: rgba(28,22,52,.45); }
+  .game[data-layout="portrait"].sheet-open .scrim { display: block; position: absolute; inset: 0; z-index: 2; background: rgba(0,129,141,.45); }
   .game[data-layout="portrait"] .deck, .game[data-layout="portrait"] .story-art { display: none; }
   .game[data-layout="portrait"] .story { min-height: 0; padding: 10px 12px; grid-template-columns: 1fr; }
   .game[data-layout="portrait"] .story h2 { font-size: 1.1rem; }
@@ -187,7 +187,7 @@
     background: var(--yellow); color: #2c2347; padding: 10px; --frame: #2c2347;
   }
   /* The board is too small to hold the results here, so they cover the page instead. */
-  .game[data-layout="portrait"] .win { position: fixed; z-index: 10; background: rgba(28,22,52,.6); }
+  .game[data-layout="portrait"] .win { position: fixed; z-index: 10; background: rgba(0,129,141,.6); }
   .game[data-layout="portrait"] .win-box { padding: 12px 14px 16px; }
   .game[data-layout="portrait"] .win-box canvas { width: 52px; }
   .game[data-layout="portrait"] .win p { font-size: .95rem; margin-bottom: 10px; }
@@ -1163,8 +1163,8 @@
   }
 
   function drawWin() {
-    var a = Math.min(1, winT / 20);
-    ctx.fillStyle = "rgba(28,22,52," + (0.78 * a).toFixed(2) + ")";
+    var a = reduceMotion ? 1 : Math.min(1, winT / 20); // fades in, or appears at once with reduced motion
+    ctx.fillStyle = "rgba(0,129,141," + (0.78 * a).toFixed(2) + ")"; // the end card's teal
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = "#fff6c0";
     for (var i = 0; i < 40; i++) if (((i * 7 + winT) >> 3) % 5) ctx.fillRect((i * 53) % W, (i * 37) % (H - 10), 1, 1);
